@@ -67,10 +67,16 @@
                 appId: "FALLBACK_APP_ID"
             };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const plansCollection = db.collection(`/artifacts/${appId}/public/data/plans`);
+       // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCXJTAzxbdnLRVvbaunka7GJnSLMY9gBZQ",
+  authDomain: "websitehomie.firebaseapp.com",
+  projectId: "websitehomie",
+  storageBucket: "websitehomie.firebasestorage.app",
+  messagingSenderId: "630272607685",
+  appId: "1:630272607685:web:5239eac13999496e2bb7ac",
+  measurementId: "G-5CGMJQD172"
+};
 
         // --- App State & Elements ---
         const feedContainer = document.getElementById('feed-container');
@@ -241,15 +247,6 @@
                     <h3 class="font-bold text-xl">Verbindungsfehler</h3>
                     <p>Die App konnte keine Verbindung zur Datenbank herstellen. Bitte lade die Seite neu.</p>
 
-                    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCXJTAzxbdnLRVvbaunka7GJnSLMY9gBZQ",
-  authDomain: "websitehomie.firebaseapp.com",
-  projectId: "websitehomie",
-  storageBucket: "websitehomie.firebasestorage.app",
-  messagingSenderId: "630272607685",
-  appId: "1:630272607685:web:5239eac13999496e2bb7ac",
-  measurementId: "G-5CGMJQD172"
 };
 
                 </div>`;
