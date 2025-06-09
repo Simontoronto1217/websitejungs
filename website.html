@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urlaubs-Masterplan 2025 | Social Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Modern Social Neutrals & Action Blue -->
+    <!-- Application Structure Plan: A single-column social feed layout. Each vacation plan is a "post" with interactive elements: a vote button with a counter and a comment section. This structure directly addresses the user's request for a "social media, short attention span" feel. A modal asks for the user's name on the first interaction to personalize votes/comments. Firebase Firestore is used as the backend to sync all interactions in real-time across all users. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: Vacation Plans. Goal: Present as engaging content. Viz: "Post" cards with actions. Interaction: Voting, commenting. Justification: Mimics familiar social media UX.
+        - Report Info: User votes. Goal: Show social proof and consensus. Viz: Vote count and list of names on hover. Interaction: Click vote button. Justification: Creates a dynamic sense of group activity.
+        - Report Info: User comments. Goal: Facilitate discussion. Viz: Collapsible comment section per post. Interaction: Click to expand, type to add. Justification: Keeps the main feed clean while allowing deep dives.
+        - Technology: Firebase Firestore for real-time data synchronization. Justification: Essential for the live, multi-user social features.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .post-card { transition: all 0.2s ease-in-out; }
+        .comment-section { max-height: 0; overflow-y: hidden; transition: max-height 0.5s ease-out; }
+        .comment-section.open { max-height: 500px; transition: max-height 0.5s ease-in; }
+        .vote-button.voted { background-color: #2563eb; color: white; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- User Name Modal -->
+    <div id="user-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+            <h2 class="text-2xl font-bold mb-4">Wer bist du?</h2>
+            <p class="text-gray-600 mb-6">Gib deinen Namen ein, damit deine Freunde deine Votes und Kommentare sehen können.</p>
+            <input type="text" id="username-input" class="w-full p-3 border border-gray-300 rounded-lg mb-2" placeholder="Dein Name...">
+            <p id="username-error" class="text-red-500 text-sm h-5 mb-2"></p>
+            <button id="save-username-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all">Speichern & Loslegen</button>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2">Urlaubs-Feed 2025</h1>
+            <p class="text-lg text-gray-600">Votet für eure Favoriten und plant gemeinsam!</p>
+        </header>
+
+        <main id="feed-container" class="space-y-8">
+            <!-- Posts will be injected here by JavaScript -->
+        </main>
+    </div>
+
+    <script>
+        // --- Firebase Configuration & Initialization ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined'
+            ? JSON.parse(__firebase_config)
+            : {
+                apiKey: "FALLBACK_API_KEY",
+                authDomain: "FALLBACK_AUTH_DOMAIN",
+                projectId: "FALLBACK_PROJECT_ID",
+                storageBucket: "FALLBACK_STORAGE_BUCKET",
+                messagingSenderId: "FALLBACK_SENDER_ID",
+                appId: "FALLBACK_APP_ID"
+            };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const plansCollection = db.collection(`/artifacts/${appId}/public/data/plans`);
+
+        // --- App State & Elements ---
+        const feedContainer = document.getElementById('feed-container');
+        const userModal = document.getElementById('user-modal');
+        const usernameInput = document.getElementById('username-input');
+        const usernameErrorEl = document.getElementById('username-error');
+        const saveUsernameBtn = document.getElementById('save-username-btn');
+        let currentUser = localStorage.getItem('vacationPlannerUser');
+
+        const vacationData = [
+            { id: 'xxl-fruehling', title: 'Der XXL-Frühling', motto: 'BONVIVANT & Grenzgänger', daysUsed: 8, daysOff: 16, description: '8 Tage investieren, 16 Tage frei haben. Perfekt für den ganz großen Trip.' },
+            { id: 'weihnachts-finale', title: 'Das Weihnachts-Finale', motto: 'Kreativ & gemütlich', daysUsed: 3, daysOff: 9, description: 'Mit nur 3 Tagen das Jahr entspannt ausklingen lassen.' },
+            { id: 'neujahrs-tief', title: 'Das Nach-Weihnachts-Tief', motto: 'Urban Explorer & Skill-Up', daysUsed: 5, daysOff: 9, description: 'In der Nebensaison günstig eine neue Stadt erkunden oder Skills lernen.' },
+            { id: 'goldener-herbst', title: 'Der goldene Herbst', motto: 'Natur-Burschen & Entdecker', daysUsed: 4, daysOff: 9, description: 'Die letzten warmen Tage für Outdoor-Abenteuer nutzen.' }
+        ];
+
+        // --- User Management ---
+        const checkUser = () => {
+            if (!currentUser) {
+                userModal.classList.remove('hidden');
+            }
+        };
+
+        saveUsernameBtn.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            if (username) {
+                currentUser = username;
+                localStorage.setItem('vacationPlannerUser', currentUser);
+                userModal.classList.add('hidden');
+                usernameErrorEl.textContent = '';
+            } else {
+                usernameErrorEl.textContent = 'Bitte gib einen Namen ein.';
+            }
+        });
+
+        // --- Rendering Logic ---
+        const renderFeed = () => {
+            feedContainer.innerHTML = '';
+            vacationData.forEach(plan => {
+                const postEl = document.createElement('div');
+                postEl.className = 'post-card bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden';
+                postEl.innerHTML = `
+                    <div class="p-6">
+                        <h3 class="text-2xl font-extrabold text-gray-900">${plan.title}</h3>
+                        <p class="font-semibold text-blue-600 mb-4">${plan.motto}</p>
+                        <p class="text-gray-700 mb-4">${plan.description}</p>
+                        <div class="bg-gray-100 p-3 rounded-lg text-center font-bold text-lg">
+                            ${plan.daysUsed} Tage Urlaub ➔ ${plan.daysOff} Tage frei
+                        </div>
+                    </div>
+                    <div class="p-6 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <button data-id="${plan.id}" class="vote-button flex items-center gap-2 bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-full hover:bg-gray-300 transition-all">
+                                <span class="text-xl">👍</span>
+                                <span id="votes-${plan.id}" class="vote-count">0</span>
+                            </button>
+                            <div id="voters-${plan.id}" class="text-sm text-gray-500"></div>
+                        </div>
+                        <button data-id="${plan.id}" class="comment-toggle-btn text-gray-600 hover:text-black font-semibold">Kommentare</button>
+                    </div>
+                    <div id="comments-section-${plan.id}" class="comment-section p-6 border-t border-gray-200">
+                        <div id="comments-list-${plan.id}" class="space-y-4 mb-4"></div>
+                        <div class="flex gap-2">
+                            <input type="text" id="comment-input-${plan.id}" class="flex-grow p-2 border border-gray-300 rounded-lg" placeholder="Dein Kommentar...">
+                            <button data-id="${plan.id}" class="add-comment-btn bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Posten</button>
+                        </div>
+                    </div>
+                `;
+                feedContainer.appendChild(postEl);
+                listenToPlan(plan.id);
+            });
+        };
+
+        // --- Firebase Interaction ---
+        const listenToPlan = (planId) => {
+            plansCollection.doc(planId).onSnapshot(doc => {
+                const data = doc.exists ? doc.data() : { votes: [], comments: [] };
+                
+                const voteCountEl = document.getElementById(`votes-${planId}`);
+                const votersEl = document.getElementById(`voters-${planId}`);
+                const voteButton = document.querySelector(`.vote-button[data-id="${planId}"]`);
+                if (voteCountEl) voteCountEl.textContent = data.votes.length;
+                if (votersEl) {
+                    votersEl.textContent = data.votes.length > 0 ? `${data.votes.slice(0, 2).join(', ')} ${data.votes.length > 2 ? `& ${data.votes.length - 2} weitere` : ''}` : '';
+                }
+                if(voteButton) {
+                    voteButton.classList.toggle('voted', data.votes.includes(currentUser));
+                }
+
+                const commentsListEl = document.getElementById(`comments-list-${planId}`);
+                if (commentsListEl) {
+                    commentsListEl.innerHTML = '';
+                    const sortedComments = data.comments.sort((a,b) => (a.timestamp && b.timestamp) ? a.timestamp.seconds - b.timestamp.seconds : -1);
+                    sortedComments.forEach(comment => {
+                        const commentEl = document.createElement('div');
+                        commentEl.className = 'bg-gray-100 p-3 rounded-lg';
+                        commentEl.innerHTML = `<p><strong class="text-gray-800">${comment.user}</strong>: ${comment.text}</p>`;
+                        commentsListEl.appendChild(commentEl);
+                    });
+                }
+            });
+        };
+
+        const handleVote = async (planId) => {
+            if (!currentUser) { checkUser(); return; }
+            const planRef = plansCollection.doc(planId);
+            const doc = await planRef.get();
+            const data = doc.exists ? doc.data() : {};
+            const votes = data.votes || [];
+
+            if (votes.includes(currentUser)) {
+                await planRef.set({ votes: firebase.firestore.FieldValue.arrayRemove(currentUser) }, { merge: true });
+            } else {
+                await planRef.set({ votes: firebase.firestore.FieldValue.arrayUnion(currentUser) }, { merge: true });
+            }
+        };
+
+        const handleAddComment = async (planId) => {
+            if (!currentUser) { checkUser(); return; }
+            const inputEl = document.getElementById(`comment-input-${planId}`);
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            const newComment = {
+                user: currentUser,
+                text: text,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            const planRef = plansCollection.doc(planId);
+            await planRef.set({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) }, { merge: true });
+            inputEl.value = '';
+        };
+
+        const toggleComments = (planId) => {
+            document.getElementById(`comments-section-${planId}`).classList.toggle('open');
+        };
+
+        // --- Event Delegation ---
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.vote-button')) {
+                handleVote(e.target.closest('.vote-button').dataset.id);
+            }
+            if (e.target.closest('.add-comment-btn')) {
+                handleAddComment(e.target.closest('.add-comment-btn').dataset.id);
+            }
+            if (e.target.closest('.comment-toggle-btn')) {
+                toggleComments(e.target.closest('.comment-toggle-btn').dataset.id);
+            }
+        });
+
+        // --- Initial Load ---
+        const initializeApp = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await auth.signInWithCustomToken(__initial_auth_token);
+                } else {
+                    await auth.signInAnonymously();
+                }
+                console.log("Firebase authenticated successfully.");
+                
+                checkUser();
+                renderFeed();
+                
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                feedContainer.innerHTML = `<div class="bg-white p-8 rounded-lg text-center text-red-600">
+                    <h3 class="font-bold text-xl">Verbindungsfehler</h3>
+                    <p>Die App konnte keine Verbindung zur Datenbank herstellen. Bitte lade die Seite neu.</p>
+                </div>`;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
