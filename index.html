@@ -26,6 +26,18 @@
         .comment-section { max-height: 0; overflow-y: hidden; transition: max-height 0.5s ease-out; }
         .comment-section.open { max-height: 500px; transition: max-height 0.5s ease-in; }
         .vote-button.voted { background-color: #2563eb; color: white; }
+        #loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -48,35 +60,28 @@
         </header>
 
         <main id="feed-container" class="space-y-8">
-            <!-- Posts will be injected here by JavaScript -->
+             <div id="loader-container" class="flex justify-center items-center p-16">
+                <div id="loader"></div>
+            </div>
         </main>
     </div>
 
     <script>
         // --- Firebase Configuration & Initialization ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = {
+            apiKey: "AIzaSyCXJTAzxbdnLRVvbaunka7GJnSLMY9gBZQ",
+            authDomain: "websitehomie.firebaseapp.com",
+            projectId: "websitehomie",
+            storageBucket: "websitehomie.appspot.com",
+            messagingSenderId: "630272607685",
+            appId: "1:630272607685:web:5239eac13999496e2bb7ac",
+            measurementId: "G-5CGMJQD172"
+        };
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined'
-            ? JSON.parse(__firebase_config)
-            : {
-                apiKey: "FALLBACK_API_KEY",
-                authDomain: "FALLBACK_AUTH_DOMAIN",
-                projectId: "FALLBACK_PROJECT_ID",
-                storageBucket: "FALLBACK_STORAGE_BUCKET",
-                messagingSenderId: "FALLBACK_SENDER_ID",
-                appId: "FALLBACK_APP_ID"
-            };
-
-       // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCXJTAzxbdnLRVvbaunka7GJnSLMY9gBZQ",
-  authDomain: "websitehomie.firebaseapp.com",
-  projectId: "websitehomie",
-  storageBucket: "websitehomie.firebasestorage.app",
-  messagingSenderId: "630272607685",
-  appId: "1:630272607685:web:5239eac13999496e2bb7ac",
-  measurementId: "G-5CGMJQD172"
-};
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const plansCollection = db.collection('plans'); // No complex path needed for this use case
 
         // --- App State & Elements ---
         const feedContainer = document.getElementById('feed-container');
@@ -114,7 +119,7 @@ const firebaseConfig = {
 
         // --- Rendering Logic ---
         const renderFeed = () => {
-            feedContainer.innerHTML = '';
+            feedContainer.innerHTML = ''; // Clear loader
             vacationData.forEach(plan => {
                 const postEl = document.createElement('div');
                 postEl.className = 'post-card bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden';
@@ -153,7 +158,8 @@ const firebaseConfig = {
         // --- Firebase Interaction ---
         const listenToPlan = (planId) => {
             plansCollection.doc(planId).onSnapshot(doc => {
-                const data = doc.exists ? doc.data() : { votes: [], comments: [] };
+                if (!doc.exists) return;
+                const data = doc.data();
                 
                 const voteCountEl = document.getElementById(`votes-${planId}`);
                 const votersEl = document.getElementById(`voters-${planId}`);
@@ -184,13 +190,13 @@ const firebaseConfig = {
             if (!currentUser) { checkUser(); return; }
             const planRef = plansCollection.doc(planId);
             const doc = await planRef.get();
-            const data = doc.exists ? doc.data() : {};
+            const data = doc.exists ? doc.data() : { votes: [], comments: [] };
             const votes = data.votes || [];
 
             if (votes.includes(currentUser)) {
-                await planRef.set({ votes: firebase.firestore.FieldValue.arrayRemove(currentUser) }, { merge: true });
+                await planRef.update({ votes: firebase.firestore.FieldValue.arrayRemove(currentUser) });
             } else {
-                await planRef.set({ votes: firebase.firestore.FieldValue.arrayUnion(currentUser) }, { merge: true });
+                await planRef.update({ votes: firebase.firestore.FieldValue.arrayUnion(currentUser) });
             }
         };
 
@@ -206,8 +212,7 @@ const firebaseConfig = {
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            const planRef = plansCollection.doc(planId);
-            await planRef.set({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) }, { merge: true });
+            await plansCollection.doc(planId).update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
             inputEl.value = '';
         };
 
@@ -227,28 +232,35 @@ const firebaseConfig = {
                 toggleComments(e.target.closest('.comment-toggle-btn').dataset.id);
             }
         });
+        
+        // --- Self-Setup and Initialization ---
+        const seedInitialData = async () => {
+            const batch = db.batch();
+            const promises = vacationData.map(plan => {
+                const docRef = plansCollection.doc(plan.id);
+                return docRef.get().then(doc => {
+                    if (!doc.exists) {
+                        batch.set(docRef, { votes: [], comments: [] });
+                    }
+                });
+            });
+            await Promise.all(promises);
+            await batch.commit();
+        };
 
-        // --- Initial Load ---
         const initializeApp = async () => {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await auth.signInWithCustomToken(__initial_auth_token);
-                } else {
-                    await auth.signInAnonymously();
-                }
+                await auth.signInAnonymously();
                 console.log("Firebase authenticated successfully.");
-                
-                checkUser();
+                await seedInitialData();
+                console.log("Initial data checked/seeded.");
                 renderFeed();
-                
+                checkUser();
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
                 feedContainer.innerHTML = `<div class="bg-white p-8 rounded-lg text-center text-red-600">
                     <h3 class="font-bold text-xl">Verbindungsfehler</h3>
-                    <p>Die App konnte keine Verbindung zur Datenbank herstellen. Bitte lade die Seite neu.</p>
-
-};
-
+                    <p>Die App konnte keine Verbindung zur Datenbank herstellen. Bitte überprüfe die Firebase-Einstellungen und die Internetverbindung. Lade die Seite dann neu.</p>
                 </div>`;
             }
         };
