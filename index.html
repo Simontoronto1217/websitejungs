@@ -21,13 +21,13 @@
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         .post-card { transition: all 0.2s ease-in-out; }
         .comment-section { max-height: 0; overflow-y: hidden; transition: max-height 0.5s ease-out; }
         .comment-section.open { max-height: 500px; transition: max-height 0.5s ease-in; }
         .vote-button.voted { background-color: #2563eb; color: white; }
         #loader {
-            border: 5px solid #f3f3f3;
+            border: 5px solid #e5e7eb;
             border-top: 5px solid #3b82f6;
             border-radius: 50%;
             width: 50px;
@@ -44,7 +44,7 @@
 
     <!-- User Name Modal -->
     <div id="user-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm m-4 text-center">
             <h2 class="text-2xl font-bold mb-4">Wer bist du?</h2>
             <p class="text-gray-600 mb-6">Gib deinen Namen ein, damit deine Freunde deine Votes und Kommentare sehen können.</p>
             <input type="text" id="username-input" class="w-full p-3 border border-gray-300 rounded-lg mb-2" placeholder="Dein Name...">
@@ -55,7 +55,7 @@
 
     <div class="container mx-auto px-4 py-8 max-w-2xl">
         <header class="text-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2">Urlaubs-Feed 2025</h1>
+            <h1 class="text-3xl md:text-5xl font-extrabold text-gray-900 mb-2">Urlaubs-Feed 2025</h1>
             <p class="text-lg text-gray-600">Votet für eure Favoriten und plant gemeinsam!</p>
         </header>
 
@@ -81,7 +81,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        const plansCollection = db.collection('plans'); // No complex path needed for this use case
+        const plansCollection = db.collection('plans');
 
         // --- App State & Elements ---
         const feedContainer = document.getElementById('feed-container');
@@ -132,7 +132,7 @@
                             ${plan.daysUsed} Tage Urlaub ➔ ${plan.daysOff} Tage frei
                         </div>
                     </div>
-                    <div class="p-6 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
+                    <div class="p-6 bg-gray-50 border-t border-gray-200 flex justify-between items-center flex-wrap gap-4">
                         <div class="flex items-center gap-4">
                             <button data-id="${plan.id}" class="vote-button flex items-center gap-2 bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-full hover:bg-gray-300 transition-all">
                                 <span class="text-xl">👍</span>
@@ -175,13 +175,15 @@
                 const commentsListEl = document.getElementById(`comments-list-${planId}`);
                 if (commentsListEl) {
                     commentsListEl.innerHTML = '';
-                    const sortedComments = data.comments.sort((a,b) => (a.timestamp && b.timestamp) ? a.timestamp.seconds - b.timestamp.seconds : -1);
-                    sortedComments.forEach(comment => {
-                        const commentEl = document.createElement('div');
-                        commentEl.className = 'bg-gray-100 p-3 rounded-lg';
-                        commentEl.innerHTML = `<p><strong class="text-gray-800">${comment.user}</strong>: ${comment.text}</p>`;
-                        commentsListEl.appendChild(commentEl);
-                    });
+                    if (data.comments && data.comments.length > 0) {
+                        const sortedComments = data.comments.sort((a,b) => (a.timestamp && b.timestamp) ? a.timestamp.seconds - b.timestamp.seconds : -1);
+                        sortedComments.forEach(comment => {
+                            const commentEl = document.createElement('div');
+                            commentEl.className = 'bg-gray-100 p-3 rounded-lg';
+                            commentEl.innerHTML = `<p><strong class="text-gray-800">${comment.user}</strong>: ${comment.text}</p>`;
+                            commentsListEl.appendChild(commentEl);
+                        });
+                    }
                 }
             });
         };
@@ -190,7 +192,8 @@
             if (!currentUser) { checkUser(); return; }
             const planRef = plansCollection.doc(planId);
             const doc = await planRef.get();
-            const data = doc.exists ? doc.data() : { votes: [], comments: [] };
+            if(!doc.exists) return;
+            const data = doc.data();
             const votes = data.votes || [];
 
             if (votes.includes(currentUser)) {
@@ -222,15 +225,14 @@
 
         // --- Event Delegation ---
         document.addEventListener('click', (e) => {
-            if (e.target.closest('.vote-button')) {
-                handleVote(e.target.closest('.vote-button').dataset.id);
-            }
-            if (e.target.closest('.add-comment-btn')) {
-                handleAddComment(e.target.closest('.add-comment-btn').dataset.id);
-            }
-            if (e.target.closest('.comment-toggle-btn')) {
-                toggleComments(e.target.closest('.comment-toggle-btn').dataset.id);
-            }
+            const voteButton = e.target.closest('.vote-button');
+            if (voteButton) handleVote(voteButton.dataset.id);
+            
+            const commentButton = e.target.closest('.add-comment-btn');
+            if (commentButton) handleAddComment(commentButton.dataset.id);
+
+            const toggleButton = e.target.closest('.comment-toggle-btn');
+            if (toggleButton) toggleComments(toggleButton.dataset.id);
         });
         
         // --- Self-Setup and Initialization ---
@@ -245,22 +247,27 @@
                 });
             });
             await Promise.all(promises);
-            await batch.commit();
+            return batch.commit();
         };
 
         const initializeApp = async () => {
             try {
                 await auth.signInAnonymously();
                 console.log("Firebase authenticated successfully.");
+                
                 await seedInitialData();
                 console.log("Initial data checked/seeded.");
+                
                 renderFeed();
+                console.log("Feed rendered.");
+
                 checkUser();
+                console.log("User check complete.");
             } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                feedContainer.innerHTML = `<div class="bg-white p-8 rounded-lg text-center text-red-600">
-                    <h3 class="font-bold text-xl">Verbindungsfehler</h3>
-                    <p>Die App konnte keine Verbindung zur Datenbank herstellen. Bitte überprüfe die Firebase-Einstellungen und die Internetverbindung. Lade die Seite dann neu.</p>
+                console.error("CRITICAL ERROR during initialization:", error);
+                feedContainer.innerHTML = `<div class="bg-white p-8 rounded-lg text-center text-red-500">
+                    <h3 class="font-bold text-xl">Initialisierung fehlgeschlagen</h3>
+                    <p class="mt-2">Die App konnte nicht korrekt gestartet werden. Dies liegt oft an den Firestore-Sicherheitsregeln. Stelle sicher, dass anonyme Nutzer Lese- und Schreibzugriff auf die 'plans' collection haben.</p>
                 </div>`;
             }
         };
