@@ -3,276 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Urlaubs-Masterplan 2025 | Social Edition</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Modern Social Neutrals & Action Blue -->
-    <!-- Application Structure Plan: A single-column social feed layout. Each vacation plan is a "post" with interactive elements: a vote button with a counter and a comment section. This structure directly addresses the user's request for a "social media, short attention span" feel. A modal asks for the user's name on the first interaction to personalize votes/comments. Firebase Firestore is used as the backend to sync all interactions in real-time across all users. -->
-    <!-- Visualization & Content Choices:
-        - Report Info: Vacation Plans. Goal: Present as engaging content. Viz: "Post" cards with actions. Interaction: Voting, commenting. Justification: Mimics familiar social media UX.
-        - Report Info: User votes. Goal: Show social proof and consensus. Viz: Vote count and list of names on hover. Interaction: Click vote button. Justification: Creates a dynamic sense of group activity.
-        - Report Info: User comments. Goal: Facilitate discussion. Viz: Collapsible comment section per post. Interaction: Click to expand, type to add. Justification: Keeps the main feed clean while allowing deep dives.
-        - Technology: Firebase Firestore for real-time data synchronization. Justification: Essential for the live, multi-user social features.
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <title>Luisa's Next Level</title>
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        .post-card { transition: all 0.2s ease-in-out; }
-        .comment-section { max-height: 0; overflow-y: hidden; transition: max-height 0.5s ease-out; }
-        .comment-section.open { max-height: 500px; transition: max-height 0.5s ease-in; }
-        .vote-button.voted { background-color: #2563eb; color: white; }
-        #loader {
-            border: 5px solid #e5e7eb;
-            border-top: 5px solid #3b82f6;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
+        :root {
+            --bg-color: #0f0f0f;
+            --card-bg: #1e1e1e;
+            --accent-pink: #ff00ff;
+            --accent-green: #00ff66;
+            --accent-blue: #00ccff;
+            --text-main: #ffffff;
+            --text-sub: #b3b3b3;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
         }
+
+       .mobile-container {
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--bg-color);
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            padding-bottom: 80px; /* Space for bottom nav */
+        }
+
+        /* Header Styles */
+        header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0;
+            background: linear-gradient(90deg, var(--accent-pink), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        p.subtitle {
+            color: var(--text-sub);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        /* Status Bar / Gamification */
+       .status-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+       .tag {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+       .tag.highlight {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        /* Interactive Cards */
+       .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+       .card:active {
+            transform: scale(0.98);
+        }
+
+       .card-category {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+
+       .cat-stage { color: var(--accent-pink); }
+       .cat-fsj { color: var(--accent-blue); }
+       .cat-future { color: var(--accent-green); }
+
+       .card h2 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+        }
+
+       .card p {
+            color: var(--text-sub);
+            font-size: 14px;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+       .expand-icon {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            color: var(--text-sub);
+            font-size: 20px;
+        }
+
+        /* Expanded Content */
+       .details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+
+       .card.open.details {
+            max-height: 500px; /* Arbitrary large height */
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+       .action-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: white;
+            color: black;
+            text-align: center;
+            border-radius: 8px;
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+       .fact-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+       .fact-box strong {
+            color: var(--accent-blue);
+        }
+
+        /* Bottom Nav */
+       .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            z-index: 100;
+        }
+
+       .nav-item {
+            color: var(--text-sub);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+       .nav-item.active {
+            color: white;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+       .card {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+       .card:nth-child(2) { animation-delay: 0.1s; }
+       .card:nth-child(3) { animation-delay: 0.2s; }
+       .card:nth-child(4) { animation-delay: 0.3s; }
+
     </style>
 </head>
-<body class="bg-gray-100">
+<body>
 
-    <!-- User Name Modal -->
-    <div id="user-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm m-4 text-center">
-            <h2 class="text-2xl font-bold mb-4">Wer bist du?</h2>
-            <p class="text-gray-600 mb-6">Gib deinen Namen ein, damit deine Freunde deine Votes und Kommentare sehen können.</p>
-            <input type="text" id="username-input" class="w-full p-3 border border-gray-300 rounded-lg mb-2" placeholder="Dein Name...">
-            <p id="username-error" class="text-red-500 text-sm h-5 mb-2"></p>
-            <button id="save-username-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all">Speichern & Loslegen</button>
+<div class="mobile-container">
+    <header>
+        <h1>LUISA'S NEXT LEVEL</h1>
+        <p class="subtitle">Kosmetik war das Warm-up. Jetzt kommt die Show.</p>
+    </header>
+
+    <div class="status-bar">
+        <div class="tag highlight">✨ Talent: Gesang/Tanz</div>
+        <div class="tag">📍 Base: Langenfeld</div>
+        <div class="tag">🌱 Werte: Nachhaltigkeit</div>
+    </div>
+
+    <div class="card" onclick="toggleCard(this)">
+        <span class="card-category cat-stage">Instant Fame & Cash</span>
+        <div class="expand-icon">+</div>
+        <h2>Die Hochzeits-Queen</h2>
+        <p>Du willst Applaus und Geld? Heiraten ist ein Milliarden-Markt in NRW.</p>
+        
+        <div class="details">
+            <div class="fact-box">
+                <strong>Der Plan:</strong> Nicht als Planerin bewerben, sondern als "Vendor" (Dienstleisterin).
+            </div>
+            <p>Du schreibst die lokalen Partner von "Agentur Traumhochzeit" an (z.B. in Köln). Dein Pitch: "Ich bin die Stimme für eure Trauungen."</p>
+            <div class="fact-box">
+                <strong>To Do:</strong> Profil auf <em>Eventpeppers</em> erstellen. Demos aufnehmen (Handy reicht für den Start).
+            </div>
+            <a href="[https://agentur-traumhochzeit.de/](https://agentur-traumhochzeit.de/)" target="_blank" class="action-btn">Agentur checken</a>
         </div>
     </div>
 
-    <div class="container mx-auto px-4 py-8 max-w-2xl">
-        <header class="text-center mb-12">
-            <h1 class="text-3xl md:text-5xl font-extrabold text-gray-900 mb-2">Urlaubs-Feed 2025</h1>
-            <p class="text-lg text-gray-600">Votet für eure Favoriten und plant gemeinsam!</p>
-        </header>
-
-        <main id="feed-container" class="space-y-8">
-             <div id="loader-container" class="flex justify-center items-center p-16">
-                <div id="loader"></div>
+    <div class="card" onclick="toggleCard(this)">
+        <span class="card-category cat-fsj">Der "Vibe" Check</span>
+        <div class="expand-icon">+</div>
+        <h2>FSJ: Monheim Special</h2>
+        <p>Warum Monheim? Weil die Stadt Geld hat. Viel Geld.</p>
+        
+        <div class="details">
+            <div class="fact-box">
+                <strong>Money Hack:</strong> FSJ Taschengeld in Monheim oft ca. 507€ (höher als Standard).
             </div>
-        </main>
+            <p><strong>Sojus 7:</strong> Ein Club/Kulturzentrum. Aufgaben: Social Media (TikTok!), Events organisieren, Konzerte betreuen. Perfekt für deine "kurze Aufmerksamkeitsspanne".</p>
+            <p><strong>Musikschule:</strong> Mitten im Geschehen. Kontakte zu Lehrern und Bands knüpfen.</p>
+            <a href="[https://www.monheim.de/karriere/ausbildung-studium-und-fsj/freiwilligendienste](https://www.monheim.de/karriere/ausbildung-studium-und-fsj/freiwilligendienste)" target="_blank" class="action-btn">Stellen ansehen</a>
+        </div>
     </div>
 
-    <script>
-        // --- Firebase Configuration & Initialization ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCXJTAzxbdnLRVvbaunka7GJnSLMY9gBZQ",
-            authDomain: "websitehomie.firebaseapp.com",
-            projectId: "websitehomie",
-            storageBucket: "websitehomie.appspot.com",
-            messagingSenderId: "630272607685",
-            appId: "1:630272607685:web:5239eac13999496e2bb7ac",
-            measurementId: "G-5CGMJQD172"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const plansCollection = db.collection('plans');
-
-        // --- App State & Elements ---
-        const feedContainer = document.getElementById('feed-container');
-        const userModal = document.getElementById('user-modal');
-        const usernameInput = document.getElementById('username-input');
-        const usernameErrorEl = document.getElementById('username-error');
-        const saveUsernameBtn = document.getElementById('save-username-btn');
-        let currentUser = localStorage.getItem('vacationPlannerUser');
-
-        const vacationData = [
-            { id: 'xxl-fruehling', title: 'Der XXL-Frühling', motto: 'BONVIVANT & Grenzgänger', daysUsed: 8, daysOff: 16, description: '8 Tage investieren, 16 Tage frei haben. Perfekt für den ganz großen Trip.' },
-            { id: 'weihnachts-finale', title: 'Das Weihnachts-Finale', motto: 'Kreativ & gemütlich', daysUsed: 3, daysOff: 9, description: 'Mit nur 3 Tagen das Jahr entspannt ausklingen lassen.' },
-            { id: 'neujahrs-tief', title: 'Das Nach-Weihnachts-Tief', motto: 'Urban Explorer & Skill-Up', daysUsed: 5, daysOff: 9, description: 'In der Nebensaison günstig eine neue Stadt erkunden oder Skills lernen.' },
-            { id: 'goldener-herbst', title: 'Der goldene Herbst', motto: 'Natur-Burschen & Entdecker', daysUsed: 4, daysOff: 9, description: 'Die letzten warmen Tage für Outdoor-Abenteuer nutzen.' }
-        ];
-
-        // --- User Management ---
-        const checkUser = () => {
-            if (!currentUser) {
-                userModal.classList.remove('hidden');
-            }
-        };
-
-        saveUsernameBtn.addEventListener('click', () => {
-            const username = usernameInput.value.trim();
-            if (username) {
-                currentUser = username;
-                localStorage.setItem('vacationPlannerUser', currentUser);
-                userModal.classList.add('hidden');
-                usernameErrorEl.textContent = '';
-            } else {
-                usernameErrorEl.textContent = 'Bitte gib einen Namen ein.';
-            }
-        });
-
-        // --- Rendering Logic ---
-        const renderFeed = () => {
-            feedContainer.innerHTML = ''; // Clear loader
-            vacationData.forEach(plan => {
-                const postEl = document.createElement('div');
-                postEl.className = 'post-card bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden';
-                postEl.innerHTML = `
-                    <div class="p-6">
-                        <h3 class="text-2xl font-extrabold text-gray-900">${plan.title}</h3>
-                        <p class="font-semibold text-blue-600 mb-4">${plan.motto}</p>
-                        <p class="text-gray-700 mb-4">${plan.description}</p>
-                        <div class="bg-gray-100 p-3 rounded-lg text-center font-bold text-lg">
-                            ${plan.daysUsed} Tage Urlaub ➔ ${plan.daysOff} Tage frei
-                        </div>
-                    </div>
-                    <div class="p-6 bg-gray-50 border-t border-gray-200 flex justify-between items-center flex-wrap gap-4">
-                        <div class="flex items-center gap-4">
-                            <button data-id="${plan.id}" class="vote-button flex items-center gap-2 bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-full hover:bg-gray-300 transition-all">
-                                <span class="text-xl">👍</span>
-                                <span id="votes-${plan.id}" class="vote-count">0</span>
-                            </button>
-                            <div id="voters-${plan.id}" class="text-sm text-gray-500"></div>
-                        </div>
-                        <button data-id="${plan.id}" class="comment-toggle-btn text-gray-600 hover:text-black font-semibold">Kommentare</button>
-                    </div>
-                    <div id="comments-section-${plan.id}" class="comment-section p-6 border-t border-gray-200">
-                        <div id="comments-list-${plan.id}" class="space-y-4 mb-4"></div>
-                        <div class="flex gap-2">
-                            <input type="text" id="comment-input-${plan.id}" class="flex-grow p-2 border border-gray-300 rounded-lg" placeholder="Dein Kommentar...">
-                            <button data-id="${plan.id}" class="add-comment-btn bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Posten</button>
-                        </div>
-                    </div>
-                `;
-                feedContainer.appendChild(postEl);
-                listenToPlan(plan.id);
-            });
-        };
-
-        // --- Firebase Interaction ---
-        const listenToPlan = (planId) => {
-            plansCollection.doc(planId).onSnapshot(doc => {
-                if (!doc.exists) return;
-                const data = doc.data();
-                
-                const voteCountEl = document.getElementById(`votes-${planId}`);
-                const votersEl = document.getElementById(`voters-${planId}`);
-                const voteButton = document.querySelector(`.vote-button[data-id="${planId}"]`);
-                if (voteCountEl) voteCountEl.textContent = data.votes.length;
-                if (votersEl) {
-                    votersEl.textContent = data.votes.length > 0 ? `${data.votes.slice(0, 2).join(', ')} ${data.votes.length > 2 ? `& ${data.votes.length - 2} weitere` : ''}` : '';
-                }
-                if(voteButton) {
-                    voteButton.classList.toggle('voted', data.votes.includes(currentUser));
-                }
-
-                const commentsListEl = document.getElementById(`comments-list-${planId}`);
-                if (commentsListEl) {
-                    commentsListEl.innerHTML = '';
-                    if (data.comments && data.comments.length > 0) {
-                        const sortedComments = data.comments.sort((a,b) => (a.timestamp && b.timestamp) ? a.timestamp.seconds - b.timestamp.seconds : -1);
-                        sortedComments.forEach(comment => {
-                            const commentEl = document.createElement('div');
-                            commentEl.className = 'bg-gray-100 p-3 rounded-lg';
-                            commentEl.innerHTML = `<p><strong class="text-gray-800">${comment.user}</strong>: ${comment.text}</p>`;
-                            commentsListEl.appendChild(commentEl);
-                        });
-                    }
-                }
-            });
-        };
-
-        const handleVote = async (planId) => {
-            if (!currentUser) { checkUser(); return; }
-            const planRef = plansCollection.doc(planId);
-            const doc = await planRef.get();
-            if(!doc.exists) return;
-            const data = doc.data();
-            const votes = data.votes || [];
-
-            if (votes.includes(currentUser)) {
-                await planRef.update({ votes: firebase.firestore.FieldValue.arrayRemove(currentUser) });
-            } else {
-                await planRef.update({ votes: firebase.firestore.FieldValue.arrayUnion(currentUser) });
-            }
-        };
-
-        const handleAddComment = async (planId) => {
-            if (!currentUser) { checkUser(); return; }
-            const inputEl = document.getElementById(`comment-input-${planId}`);
-            const text = inputEl.value.trim();
-            if (!text) return;
-
-            const newComment = {
-                user: currentUser,
-                text: text,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            await plansCollection.doc(planId).update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
-            inputEl.value = '';
-        };
-
-        const toggleComments = (planId) => {
-            document.getElementById(`comments-section-${planId}`).classList.toggle('open');
-        };
-
-        // --- Event Delegation ---
-        document.addEventListener('click', (e) => {
-            const voteButton = e.target.closest('.vote-button');
-            if (voteButton) handleVote(voteButton.dataset.id);
-            
-            const commentButton = e.target.closest('.add-comment-btn');
-            if (commentButton) handleAddComment(commentButton.dataset.id);
-
-            const toggleButton = e.target.closest('.comment-toggle-btn');
-            if (toggleButton) toggleComments(toggleButton.dataset.id);
-        });
+    <div class="card" onclick="toggleCard(this)">
+        <span class="card-category cat-stage">Backstage & Maske</span>
+        <div class="expand-icon">+</div>
+        <h2>D'haus & Oper</h2>
+        <p>Deine Kosmetik-Ausbildung ist kein Fehler. Sie ist dein VIP-Ticket.</p>
         
-        // --- Self-Setup and Initialization ---
-        const seedInitialData = async () => {
-            const batch = db.batch();
-            const promises = vacationData.map(plan => {
-                const docRef = plansCollection.doc(plan.id);
-                return docRef.get().then(doc => {
-                    if (!doc.exists) {
-                        batch.set(docRef, { votes: [], comments: [] });
-                    }
-                });
-            });
-            await Promise.all(promises);
-            return batch.commit();
-        };
+        <div class="details">
+            <p>Theater suchen Händeringend Leute, die "anfassen" können. Nutze deine Skills für ein FSJ in der <strong>Maskenbildnerei</strong>.</p>
+            <div class="fact-box">
+                <strong>Stadt:Kollektiv:</strong> Die Sparte des Schauspielhauses zum Mitmachen. Hier kannst du performen UND organisieren.
+            </div>
+            <p>Bewirb dich über die LAG Arbeit Bildung Kultur NRW (Portal öffnet im Januar!).</p>
+            <a href="[https://anmelden.freiwilligendienste-kultur-bildung.de/](https://anmelden.freiwilligendienste-kultur-bildung.de/)" target="_blank" class="action-btn">Zum Bewerbungs-Portal</a>
+        </div>
+    </div>
 
-        const initializeApp = async () => {
-            try {
-                await auth.signInAnonymously();
-                console.log("Firebase authenticated successfully.");
-                
-                await seedInitialData();
-                console.log("Initial data checked/seeded.");
-                
-                renderFeed();
-                console.log("Feed rendered.");
+    <div class="card" onclick="toggleCard(this)">
+        <span class="card-category cat-future">Studium 2.0</span>
+        <div class="expand-icon">+</div>
+        <h2>Alanus: Wirtschaft & Schauspiel</h2>
+        <p>Kein Mathe-Horror mehr. Studieren mit Sinn und Bühne.</p>
+        
+        <div class="details">
+            <p>Die Alanus Hochschule (bei Bonn) bietet den Studiengang <strong>"Wirtschaft & Schauspiel"</strong>.</p>
+            <div class="fact-box">
+                <strong>Der Mix:</strong> Vormittags Management & Nachhaltigkeit, Nachmittags Körpertraining & Rollenstudium.
+            </div>
+            <p>Perfekt für dich: Kleine Gruppen, keine "falschen Leute", voller Fokus auf Persönlichkeit.</p>
+            <a href="[https://www.alanus.edu/de/studium/studiengaenge/detail/wirtschaft-schauspiel-bachelor-of-arts](https://www.alanus.edu/de/studium/studiengaenge/detail/wirtschaft-schauspiel-bachelor-of-arts)" target="_blank" class="action-btn">Studiengang checken</a>
+        </div>
+    </div>
 
-                checkUser();
-                console.log("User check complete.");
-            } catch (error) {
-                console.error("CRITICAL ERROR during initialization:", error);
-                feedContainer.innerHTML = `<div class="bg-white p-8 rounded-lg text-center text-red-500">
-                    <h3 class="font-bold text-xl">Initialisierung fehlgeschlagen</h3>
-                    <p class="mt-2">Die App konnte nicht korrekt gestartet werden. Dies liegt oft an den Firestore-Sicherheitsregeln. Stelle sicher, dass anonyme Nutzer Lese- und Schreibzugriff auf die 'plans' collection haben.</p>
-                </div>`;
+     <div class="card" onclick="toggleCard(this)">
+        <span class="card-category cat-stage">Rampensau gesucht</span>
+        <div class="expand-icon">+</div>
+        <h2>Coverband & Gala</h2>
+        <p>Lust auf Wochenende-Gigs mit Sofort-Bezahlung?</p>
+        
+        <div class="details">
+            <p>Auf <strong>Backstagepro.de</strong> suchen "Gala-Bands" in NRW ständig Sängerinnen, die performen können. Du hast den Look (Kosmetik) und die Voice.</p>
+            <div class="fact-box">
+                <strong>Gage:</strong> Oft 300-600€ pro Abend für Hochzeiten/Firmenfeiern.
+            </div>
+            <a href="[https://www.backstagepro.de/musikersuche](https://www.backstagepro.de/musikersuche)" target="_blank" class="action-btn">Musiker suchen</a>
+        </div>
+    </div>
+
+</div>
+
+<div class="bottom-nav">
+    <div class="nav-item active">🔥</div> <div class="nav-item">🎤</div> <div class="nav-item">🎓</div> <div class="nav-item">💬</div> </div>
+
+<script>
+    function toggleCard(card) {
+        // Close all other cards
+        document.querySelectorAll('.card').forEach(c => {
+            if (c!== card) {
+                c.classList.remove('open');
+                c.querySelector('.expand-icon').innerText = '+';
             }
-        };
+        });
 
-        document.addEventListener('DOMContentLoaded', initializeApp);
-    </script>
+        // Toggle current card
+        card.classList.toggle('open');
+        const icon = card.querySelector('.expand-icon');
+        icon.innerText = card.classList.contains('open')? '-' : '+';
+    }
+</script>
+
 </body>
 </html>
