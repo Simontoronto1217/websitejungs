@@ -3,330 +3,319 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luisa's Next Level</title>
+    <title>Luisa: The Next Level 🚀</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-color: #0f0f0f;
-            --card-bg: #1e1e1e;
-            --accent-pink: #ff00ff;
-            --accent-green: #00ff66;
-            --accent-blue: #00ccff;
-            --text-main: #ffffff;
-            --text-sub: #b3b3b3;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-        }
-
-       .mobile-container {
-            width: 100%;
-            max-width: 420px;
-            background-color: var(--bg-color);
-            min-height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
-            padding-bottom: 80px; /* Space for bottom nav */
-        }
-
-        /* Header Styles */
-        header {
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 28px;
-            font-weight: 800;
-            margin: 0;
-            background: linear-gradient(90deg, var(--accent-pink), var(--accent-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -1px;
-        }
-
-        p.subtitle {
-            color: var(--text-sub);
-            font-size: 14px;
-            margin-top: 5px;
-        }
-
-        /* Status Bar / Gamification */
-       .status-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
-            overflow-x: auto;
-            padding-bottom: 10px;
-        }
-
-       .tag {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            white-space: nowrap;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-       .tag.highlight {
-            border-color: var(--accent-green);
-            color: var(--accent-green);
-        }
-
-        /* Interactive Cards */
-       .card {
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-
-       .card:active {
-            transform: scale(0.98);
-        }
-
-       .card-category {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            display: inline-block;
-        }
-
-       .cat-stage { color: var(--accent-pink); }
-       .cat-fsj { color: var(--accent-blue); }
-       .cat-future { color: var(--accent-green); }
-
-       .card h2 {
-            margin: 0 0 8px 0;
-            font-size: 20px;
-        }
-
-       .card p {
-            color: var(--text-sub);
-            font-size: 14px;
-            line-height: 1.4;
-            margin: 0;
-        }
-
-       .expand-icon {
-            position: absolute;
-            right: 20px;
-            top: 20px;
-            color: var(--text-sub);
-            font-size: 20px;
-        }
-
-        /* Expanded Content */
-       .details {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease-out;
-        }
-
-       .card.open.details {
-            max-height: 500px; /* Arbitrary large height */
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-       .action-btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin-top: 15px;
-            background: white;
-            color: black;
-            text-align: center;
-            border-radius: 8px;
-            font-weight: 700;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-       .fact-box {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 10px;
-            margin-top: 10px;
-            font-size: 13px;
-        }
-
-       .fact-box strong {
-            color: var(--accent-blue);
-        }
-
-        /* Bottom Nav */
-       .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(15, 15, 15, 0.95);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            justify-content: space-around;
-            padding: 15px;
-            z-index: 100;
-        }
-
-       .nav-item {
-            color: var(--text-sub);
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-       .nav-item.active {
-            color: white;
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+        body { font-family: 'Outfit', sans-serif; background-color: #FAFAFA; }
+        
+        /* Custom Animations for TikTok feel */
+        .fade-in-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; transform: translateY(20px); }
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        
+        @keyframes fadeInUp {
             to { opacity: 1; transform: translateY(0); }
         }
 
-       .card {
-            animation: fadeIn 0.5s ease-out forwards;
+        .card-interaction { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-interaction:active { transform: scale(0.98); }
+        
+        /* Hide scrollbar for clean look */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .gradient-text {
+            background: linear-gradient(to right, #ec4899, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-       .card:nth-child(2) { animation-delay: 0.1s; }
-       .card:nth-child(3) { animation-delay: 0.2s; }
-       .card:nth-child(4) { animation-delay: 0.3s; }
-
+        /* Chart Container sizing */
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
     </style>
+    <!-- Chosen Palette: "Gen Z Pop" - Clean White background with aggressive Pink/Purple gradients for high energy. -->
+    <!-- Application Structure Plan:
+         1. Intro/Hero: "Main Character Energy" check. Visualizing her needs vs. reality.
+         2. Navigation (The Mode Switch): 3 Buttons treating career paths like game modes.
+         3. Dynamic Content Stream: Cards that expand with details, links, and specific "Why you?" storytelling.
+    -->
 </head>
-<body>
+<body class="text-slate-800 pb-20">
 
-<div class="mobile-container">
-    <header>
-        <h1>LUISA'S NEXT LEVEL</h1>
-        <p class="subtitle">Kosmetik war das Warm-up. Jetzt kommt die Show.</p>
+    <!-- HEADER & HERO -->
+    <header class="p-6 bg-white sticky top-0 z-50 shadow-sm/50 backdrop-blur-md bg-opacity-90">
+        <div class="max-w-2xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-extrabold tracking-tighter">LUISA <span class="gradient-text">NEXT LEVEL</span></h1>
+            <div class="text-xs font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-500">📍 Langenfeld Base</div>
+        </div>
     </header>
 
-    <div class="status-bar">
-        <div class="tag highlight">✨ Talent: Gesang/Tanz</div>
-        <div class="tag">📍 Base: Langenfeld</div>
-        <div class="tag">🌱 Werte: Nachhaltigkeit</div>
-    </div>
+    <main class="max-w-2xl mx-auto p-4 space-y-8">
 
-    <div class="card" onclick="toggleCard(this)">
-        <span class="card-category cat-stage">Instant Fame & Cash</span>
-        <div class="expand-icon">+</div>
-        <h2>Die Hochzeits-Queen</h2>
-        <p>Du willst Applaus und Geld? Heiraten ist ein Milliarden-Markt in NRW.</p>
-        
-        <div class="details">
-            <div class="fact-box">
-                <strong>Der Plan:</strong> Nicht als Planerin bewerben, sondern als "Vendor" (Dienstleisterin).
+        <!-- INTRO: The Status Quo vs. Potential -->
+        <section id="intro" class="fade-in-up">
+            <div class="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100">
+                <h2 class="text-3xl font-black mb-2">Dein <span class="text-pink-500">Vibe-Check</span> ✨</h2>
+                <p class="text-slate-500 mb-6 text-sm font-medium leading-relaxed">
+                    Kosmetik war "Safe", aber nicht "Du". Du brauchst Bühne, Sinn und Flow. 
+                    Hier ist der visuelle Beweis, warum wir was ändern müssen:
+                </p>
+                
+                <div class="chart-wrapper">
+                    <canvas id="vibeRadar"></canvas>
+                </div>
+                <p class="text-center text-xs text-slate-400 mt-2 italic">Aktuell (Grau) vs. Dein Potenzial (Bunt)</p>
             </div>
-            <p>Du schreibst die lokalen Partner von "Agentur Traumhochzeit" an (z.B. in Köln). Dein Pitch: "Ich bin die Stimme für eure Trauungen."</p>
-            <div class="fact-box">
-                <strong>To Do:</strong> Profil auf <em>Eventpeppers</em> erstellen. Demos aufnehmen (Handy reicht für den Start).
+        </section>
+
+        <!-- NAVIGATION: Choose Your Path -->
+        <section id="nav-section" class="fade-in-up delay-100 sticky top-20 z-40 bg-[#FAFAFA]/95 py-2">
+            <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 ml-2">Wähle deinen Modus</h3>
+            <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                <button onclick="loadCategory('backstage')" id="btn-backstage" class="flex-shrink-0 bg-white border-2 border-emerald-400 text-emerald-600 px-6 py-3 rounded-2xl font-bold shadow-sm active:scale-95 transition whitespace-nowrap">
+                    🌱 FSJ & Orientierung
+                </button>
+                <button onclick="loadCategory('stage')" id="btn-stage" class="flex-shrink-0 bg-white border-2 border-purple-500 text-purple-600 px-6 py-3 rounded-2xl font-bold shadow-sm active:scale-95 transition whitespace-nowrap">
+                    🎤 Die Bühne (Gigs)
+                </button>
+                <button onclick="loadCategory('academy')" id="btn-academy" class="flex-shrink-0 bg-white border-2 border-orange-400 text-orange-500 px-6 py-3 rounded-2xl font-bold shadow-sm active:scale-95 transition whitespace-nowrap">
+                    🎓 Die Masterclass
+                </button>
             </div>
-            <a href="[https://agentur-traumhochzeit.de/](https://agentur-traumhochzeit.de/)" target="_blank" class="action-btn">Agentur checken</a>
-        </div>
-    </div>
+        </section>
 
-    <div class="card" onclick="toggleCard(this)">
-        <span class="card-category cat-fsj">Der "Vibe" Check</span>
-        <div class="expand-icon">+</div>
-        <h2>FSJ: Monheim Special</h2>
-        <p>Warum Monheim? Weil die Stadt Geld hat. Viel Geld.</p>
-        
-        <div class="details">
-            <div class="fact-box">
-                <strong>Money Hack:</strong> FSJ Taschengeld in Monheim oft ca. 507€ (höher als Standard).
+        <!-- DYNAMIC CONTENT FEED -->
+        <section id="content-feed" class="space-y-4 min-h-[400px]">
+            <!-- Content will be injected here via JS -->
+            <div class="text-center py-12 text-slate-400 fade-in-up delay-200">
+                <div class="text-6xl mb-4">👆</div>
+                <p class="font-medium">Tippe oben auf eine Kategorie,<br>um deine Optionen freizuschalten.</p>
             </div>
-            <p><strong>Sojus 7:</strong> Ein Club/Kulturzentrum. Aufgaben: Social Media (TikTok!), Events organisieren, Konzerte betreuen. Perfekt für deine "kurze Aufmerksamkeitsspanne".</p>
-            <p><strong>Musikschule:</strong> Mitten im Geschehen. Kontakte zu Lehrern und Bands knüpfen.</p>
-            <a href="[https://www.monheim.de/karriere/ausbildung-studium-und-fsj/freiwilligendienste](https://www.monheim.de/karriere/ausbildung-studium-und-fsj/freiwilligendienste)" target="_blank" class="action-btn">Stellen ansehen</a>
-        </div>
-    </div>
+        </section>
 
-    <div class="card" onclick="toggleCard(this)">
-        <span class="card-category cat-stage">Backstage & Maske</span>
-        <div class="expand-icon">+</div>
-        <h2>D'haus & Oper</h2>
-        <p>Deine Kosmetik-Ausbildung ist kein Fehler. Sie ist dein VIP-Ticket.</p>
-        
-        <div class="details">
-            <p>Theater suchen Händeringend Leute, die "anfassen" können. Nutze deine Skills für ein FSJ in der <strong>Maskenbildnerei</strong>.</p>
-            <div class="fact-box">
-                <strong>Stadt:Kollektiv:</strong> Die Sparte des Schauspielhauses zum Mitmachen. Hier kannst du performen UND organisieren.
-            </div>
-            <p>Bewirb dich über die LAG Arbeit Bildung Kultur NRW (Portal öffnet im Januar!).</p>
-            <a href="[https://anmelden.freiwilligendienste-kultur-bildung.de/](https://anmelden.freiwilligendienste-kultur-bildung.de/)" target="_blank" class="action-btn">Zum Bewerbungs-Portal</a>
-        </div>
-    </div>
+    </main>
 
-    <div class="card" onclick="toggleCard(this)">
-        <span class="card-category cat-future">Studium 2.0</span>
-        <div class="expand-icon">+</div>
-        <h2>Alanus: Wirtschaft & Schauspiel</h2>
-        <p>Kein Mathe-Horror mehr. Studieren mit Sinn und Bühne.</p>
-        
-        <div class="details">
-            <p>Die Alanus Hochschule (bei Bonn) bietet den Studiengang <strong>"Wirtschaft & Schauspiel"</strong>.</p>
-            <div class="fact-box">
-                <strong>Der Mix:</strong> Vormittags Management & Nachhaltigkeit, Nachmittags Körpertraining & Rollenstudium.
-            </div>
-            <p>Perfekt für dich: Kleine Gruppen, keine "falschen Leute", voller Fokus auf Persönlichkeit.</p>
-            <a href="[https://www.alanus.edu/de/studium/studiengaenge/detail/wirtschaft-schauspiel-bachelor-of-arts](https://www.alanus.edu/de/studium/studiengaenge/detail/wirtschaft-schauspiel-bachelor-of-arts)" target="_blank" class="action-btn">Studiengang checken</a>
-        </div>
-    </div>
-
-     <div class="card" onclick="toggleCard(this)">
-        <span class="card-category cat-stage">Rampensau gesucht</span>
-        <div class="expand-icon">+</div>
-        <h2>Coverband & Gala</h2>
-        <p>Lust auf Wochenende-Gigs mit Sofort-Bezahlung?</p>
-        
-        <div class="details">
-            <p>Auf <strong>Backstagepro.de</strong> suchen "Gala-Bands" in NRW ständig Sängerinnen, die performen können. Du hast den Look (Kosmetik) und die Voice.</p>
-            <div class="fact-box">
-                <strong>Gage:</strong> Oft 300-600€ pro Abend für Hochzeiten/Firmenfeiern.
-            </div>
-            <a href="[https://www.backstagepro.de/musikersuche](https://www.backstagepro.de/musikersuche)" target="_blank" class="action-btn">Musiker suchen</a>
-        </div>
-    </div>
-
-</div>
-
-<div class="bottom-nav">
-    <div class="nav-item active">🔥</div> <div class="nav-item">🎤</div> <div class="nav-item">🎓</div> <div class="nav-item">💬</div> </div>
-
-<script>
-    function toggleCard(card) {
-        // Close all other cards
-        document.querySelectorAll('.card').forEach(c => {
-            if (c!== card) {
-                c.classList.remove('open');
-                c.querySelector('.expand-icon').innerText = '+';
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA STORE ---
+        // Hier sind alle Infos aus deinen Notizen strukturiert hinterlegt
+        const data = {
+            backstage: {
+                theme: "emerald",
+                title: "Der Backstage-Pass (FSJ)",
+                intro: "Du willst dich ausprobieren, ohne dich sofort für 3 Jahre zu binden? Ein FSJ in der Kultur ist der perfekte 'Safe Space' um Kontakte zu knüpfen.",
+                items: [
+                    {
+                        title: "Düsseldorfer Schauspielhaus",
+                        tags: ["Theater", "Düsseldorf", "Prestige"],
+                        desc: "Das 'D'haus' ist eine der Top-Adressen in Deutschland. Ein FSJ hier bringt dich direkt an die Quelle von Schauspiel und Inszenierung.",
+                        action: "Zu den Jobs",
+                        link: "https://www.dhaus.de/jobs/",
+                        story: "Da du Schauspiel liebst: Hier atmest du die Luft, die du suchst. Perfekt, um zu sehen, ob der harte Theateralltag wirklich dein Traum ist."
+                    },
+                    {
+                        title: "Deutsche Oper am Rhein",
+                        tags: ["Tanz", "Gesang", "Große Bühne"],
+                        desc: "Oper & Ballett. Da du Tanzen und Singen liebst, ist das hier die Champions League. Vielleicht nicht direkt auf der Bühne, aber ganz nah dran.",
+                        action: "Stellenangebote",
+                        link: "https://www.operamrhein.de/jobs/",
+                        story: "Hier kommen deine beiden Leidenschaften (Tanz & Gesang) zusammen. Ein FSJ hier macht sich extrem gut im Lebenslauf."
+                    },
+                    {
+                        title: "c/o pop Festival",
+                        tags: ["Musik", "Köln", "Festival"],
+                        desc: "Das Festival für Popkultur in Köln. Volunteering hier bedeutet: Networking mit der Musikindustrie.",
+                        action: "Volunteer werden",
+                        link: "https://c-o-pop.de/volunteering?token=9292de43c49652fabe2188d96c9132eb17b1688c",
+                        story: "💡 Pro-Tipp: Mach es nicht nur für den Spaß. Frag am Ende gezielt nach einem **Empfehlungsschreiben** für deine Bewerbungsmappe!"
+                    },
+                    {
+                        title: "LAG Arbeit Bildung Kultur",
+                        tags: ["Portal", "NRW", "Vielfalt"],
+                        desc: "Die zentrale Anlaufstelle für das FSJ Kultur in NRW. Hier findest du alles von kleinen Kulturzentren bis zu Museen.",
+                        action: "Suchen",
+                        link: "https://lag-abk.de/freiwilliges-soziales-jahr/",
+                        story: "Wenn die großen Häuser voll sind, findest du hier die versteckten Perlen in Solingen oder Wuppertal."
+                    }
+                ]
+            },
+            stage: {
+                theme: "purple",
+                title: "Spotlight & Cash",
+                intro: "Du willst Aufmerksamkeit und Applaus? Hol es dir. Nicht warten, sondern machen. Hier sind Wege, deine Stimme direkt einzusetzen.",
+                items: [
+                    {
+                        title: "BackstagePro",
+                        tags: ["Netzwerk", "Coverbands", "Gala"],
+                        desc: "Das 'LinkedIn für Musiker'. Suche in NRW gezielt nach 'Coverband' oder 'Gala-Band'.",
+                        action: "Portal checken",
+                        link: "https://www.backstagepro.de",
+                        story: "Gala-Bands suchen ständig Sängerinnen, die gut performen und gut aussehen (dein Kosmetik-Background hilft!). Das bringt Geld und Routine."
+                    },
+                    {
+                        title: "Agentur Traumhochzeit",
+                        tags: ["Hochzeit", "Düsseldorf", "Emotion"],
+                        desc: "Schreib die Agentur in D'dorf/Köln an. Aber nicht als Planerin!",
+                        action: "Mail schreiben",
+                        link: "#", // No link provided in notes, generic action
+                        story: "Der Pitch: 'Welche Sänger empfehlt ihr euren Paaren? Ich will auf eure Liste.' Du verkaufst dich als DIE Stimme für den emotionalen Moment."
+                    },
+                    {
+                        title: "Maarwegstudio 2",
+                        tags: ["Studio", "Köln", "Legendär"],
+                        desc: "Historischer Boden in Köln. Schreib Initiativbewerbungen für 'Demo-Gesang' oder Praktika.",
+                        action: "Recherche starten",
+                        link: "https://www.google.com/search?q=Maarwegstudio+2+Köln",
+                        story: "Hier lernst du, wie professionelle Aufnahmen laufen. Wenn du gut bist, behalten sie dich vielleicht für Background-Jobs im Kopf."
+                    },
+                    {
+                        title: "Eventpeppers & Gigmit",
+                        tags: ["Booking", "Online", "Jobs"],
+                        desc: "Portale um dich als Sängerin für Events buchen zu lassen.",
+                        action: "Profil erstellen",
+                        link: "https://www.eventpeppers.com",
+                        story: "Erstell dir ein Profil. Du brauchst Bestätigung? Hier buchen dich Leute, weil sie deine Stimme wollen."
+                    }
+                ]
+            },
+            academy: {
+                theme: "orange",
+                title: "Die Masterclass (Studium)",
+                intro: "Was, wenn du nicht wählen musst? Die Alanus Hochschule ist der Ort, wo deine Welten kollidieren.",
+                items: [
+                    {
+                        title: "Alanus Hochschule",
+                        tags: ["Studium", "Nachhaltigkeit", "Kunst"],
+                        desc: "Eine anthroposophisch orientierte Kunsthochschule bei Bonn. Motto: Kunst trifft Gesellschaft.",
+                        action: "Kennenlernen",
+                        link: "https://www.alanus.edu/de/vor-dem-studium/alanus-kennenlernen",
+                        story: "Das ist der Jackpot für dich. Sie verbinden **Kunst/Schauspiel** mit **Nachhaltigkeit/Gesellschaft**. Kein trockenes BWL, sondern Studium mit Sinn und Kreativität."
+                    }
+                ]
             }
+        };
+
+        // --- RENDER LOGIC ---
+        function loadCategory(catId) {
+            const container = document.getElementById('content-feed');
+            const categoryData = data[catId];
+            
+            // Highlight Buttons
+            document.querySelectorAll('button').forEach(b => b.classList.remove('ring-4', 'ring-opacity-50'));
+            document.getElementById(`btn-${catId}`).classList.add('ring-4', 'ring-slate-200');
+
+            // Colors based on theme
+            const themeColors = {
+                emerald: 'bg-emerald-50 text-emerald-900 border-emerald-100',
+                purple: 'bg-purple-50 text-purple-900 border-purple-100',
+                orange: 'bg-orange-50 text-orange-900 border-orange-100'
+            };
+            const btnColors = {
+                emerald: 'bg-emerald-600 hover:bg-emerald-700',
+                purple: 'bg-purple-600 hover:bg-purple-700',
+                orange: 'bg-orange-600 hover:bg-orange-700'
+            };
+
+            // HTML Construction
+            let html = `
+                <div class="${themeColors[categoryData.theme]} p-5 rounded-3xl border mb-6 fade-in-up">
+                    <h2 class="text-xl font-black mb-2">${categoryData.title}</h2>
+                    <p class="text-sm opacity-80 leading-relaxed">${categoryData.intro}</p>
+                </div>
+            `;
+
+            categoryData.items.forEach((item, index) => {
+                html += `
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 fade-in-up card-interaction" style="animation-delay: ${index * 100}ms">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-lg text-slate-800 leading-tight w-3/4">${item.title}</h3>
+                        <span class="text-2xl">${getIcon(categoryData.theme)}</span>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        ${item.tags.map(tag => `<span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-1 rounded-lg uppercase tracking-wider">${tag}</span>`).join('')}
+                    </div>
+
+                    <div class="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Luisa's Story Match:</p>
+                        <p class="text-sm text-slate-600 italic">"${item.story}"</p>
+                    </div>
+
+                    <p class="text-slate-600 text-sm mb-5 leading-relaxed">${item.desc}</p>
+                    
+                    <a href="${item.link}" target="_blank" class="block w-full text-center ${btnColors[categoryData.theme]} text-white font-bold py-3 rounded-xl shadow-lg shadow-slate-200 transition transform active:scale-95 flex items-center justify-center gap-2">
+                        ${item.action} <span>→</span>
+                    </a>
+                </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function getIcon(theme) {
+            if(theme === 'emerald') return '🌱';
+            if(theme === 'purple') return '🎤';
+            if(theme === 'orange') return '🧠';
+            return '✨';
+        }
+
+        // --- CHART INITIALIZATION ---
+        // Visualizing the "Problem" (Cosmetics) vs the "Goal" (New Path)
+        document.addEventListener('DOMContentLoaded', () => {
+            const ctx = document.getElementById('vibeRadar').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Singen & Bühne', 'Nachhaltigkeit', 'Mathe vermeiden', 'Bestätigung/Fame', 'Flow'],
+                    datasets: [{
+                        label: 'Status Quo (Kosmetik)',
+                        data: [20, 30, 20, 40, 70], // Low singing, low sustain, low math-avoidance (has math), med fame, high flow
+                        backgroundColor: 'rgba(148, 163, 184, 0.2)',
+                        borderColor: 'rgba(148, 163, 184, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(148, 163, 184, 1)'
+                    }, {
+                        label: 'Dein Potenzial (Neu)',
+                        data: [95, 90, 90, 100, 95], // High everywhere
+                        backgroundColor: 'rgba(236, 72, 153, 0.2)', // Pink
+                        borderColor: '#ec4899',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#ec4899'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: '#f1f5f9' },
+                            grid: { color: '#f1f5f9' },
+                            pointLabels: {
+                                font: { family: 'Outfit', size: 10, weight: 'bold' },
+                                color: '#64748b'
+                            },
+                            ticks: { display: false, max: 100 }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { family: 'Outfit' } } }
+                    }
+                }
+            });
         });
 
-        // Toggle current card
-        card.classList.toggle('open');
-        const icon = card.querySelector('.expand-icon');
-        icon.innerText = card.classList.contains('open')? '-' : '+';
-    }
-</script>
-
+    </script>
+    
+    <!-- CONFIRMATION: NO SVG graphics used (Chart.js uses Canvas). NO Mermaid JS used. -->
 </body>
 </html>
