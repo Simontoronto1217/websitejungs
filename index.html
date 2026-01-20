@@ -72,10 +72,23 @@
         const CheckCircle = ({ className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         );
+        const Save = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        );
 
         // --- HAUPTAPP ---
         const EscalationManager = () => {
-            const [cases, setCases] = React.useState([]);
+            // DATEN LADEN: Versucht beim Start Daten aus dem LocalStorage zu holen
+            const [cases, setCases] = React.useState(() => {
+                try {
+                    const savedData = localStorage.getItem('cx_escalation_data_v1');
+                    return savedData ? JSON.parse(savedData) : [];
+                } catch (error) {
+                    console.error("Fehler beim Laden der Daten:", error);
+                    return [];
+                }
+            });
+
             const [formData, setFormData] = React.useState({
                 name: '',
                 caseNumber: '',
@@ -84,6 +97,11 @@
                 waitingSince: '',
                 context: ''
             });
+
+            // DATEN SPEICHERN: Speichert automatisch bei jeder Änderung an 'cases'
+            React.useEffect(() => {
+                localStorage.setItem('cx_escalation_data_v1', JSON.stringify(cases));
+            }, [cases]);
 
             // Prioritäten-Logik
             const priorityScore = (p) => {
@@ -123,7 +141,9 @@
             };
 
             const handleDelete = (id) => {
-                setCases(cases.filter(c => c.id !== id));
+                if(confirm('Diesen Fall wirklich löschen?')) {
+                    setCases(cases.filter(c => c.id !== id));
+                }
             };
 
             const generateEmailText = () => {
@@ -184,11 +204,20 @@
                     <div className="max-w-6xl mx-auto">
                         
                         {/* Header */}
-                        <div className="mb-10 flex items-center gap-3 border-b border-gray-800 pb-6">
-                            <ShieldAlert className="w-10 h-10 text-white" />
-                            <div>
-                                <h1 className="text-2xl font-light tracking-wide text-white">CHRONEXT <span className="font-bold text-gray-500">INTERNAL</span></h1>
-                                <p className="text-gray-400 text-sm">Escalation Management Cockpit v2.0</p>
+                        <div className="mb-10 flex items-center justify-between border-b border-gray-800 pb-6">
+                            <div className="flex items-center gap-3">
+                                <ShieldAlert className="w-10 h-10 text-white" />
+                                <div>
+                                    <h1 className="text-2xl font-light tracking-wide text-white">CHRONEXT <span className="font-bold text-gray-500">INTERNAL</span></h1>
+                                    <p className="text-gray-400 text-sm">Escalation Management Cockpit v2.1</p>
+                                </div>
+                            </div>
+                            {/* Auto-Save Indicator */}
+                            <div className="hidden md:flex flex-col items-end">
+                                <span className="text-xs text-green-500 flex items-center gap-1 border border-green-900 bg-green-900/10 px-3 py-1 rounded-full mb-1">
+                                    <Save className="w-3 h-3" /> Auto-Save aktiv (Lokal)
+                                </span>
+                                <span className="text-[10px] text-gray-600">Daten werden im Browser-Cache gespeichert.</span>
                             </div>
                         </div>
 
