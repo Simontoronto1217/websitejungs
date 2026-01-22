@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHRONEXT // SINGULARITY v7</title>
+    <title>CHRONEXT // SINGULARITY v8</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,14 +15,21 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
 
     <script>
+        // --- HIER IHRE DATEN EINFÜGEN ---
+        const CLOUD_CONFIG = {
+            BIN_ID: '', // Z.B. "65a..." 
+            API_KEY: '' // Z.B. "$2a$10$..."
+        };
+
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'void': '#020203',
-                        'gold': '#E6C200',
-                        'alert': '#FF2A2A',
-                        'glass': 'rgba(255, 255, 255, 0.03)'
+                        'void': '#050505',
+                        'gold': '#F2C94C', // Helleres Luxus-Gold
+                        'gold-dark': '#8E7321',
+                        'alert': '#FF3B30',
+                        'glass': 'rgba(20, 20, 20, 0.6)'
                     },
                     fontFamily: {
                         'display': ['Syncopate', 'sans-serif'],
@@ -30,340 +37,288 @@
                         'mono': ['Space Mono', 'monospace'],
                     },
                     animation: {
-                        'scanline': 'scanline 6s linear infinite',
-                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    },
-                    keyframes: {
-                        scanline: { '0%': { transform: 'translateY(-100%)' }, '100%': { transform: 'translateY(100%)' } }
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     }
                 }
             }
         }
-
-        // --- HIER IHRE DATEN EINFÜGEN ---
-        const CLOUD_CONFIG = {
-            BIN_ID: '', // Z.B. "65a..." (Hier einfügen!)
-            API_KEY: '' // Z.B. "$2a$10$..." (Hier einfügen!)
-        };
     </script>
 
     <style>
-        body { margin: 0; overflow: hidden; background: #020203; color: white; }
+        body { margin: 0; overflow: hidden; background: #050505; color: white; }
         
-        /* LUXURY UI TWEAKS */
+        /* UI COMPONENTS */
         .scanlines {
-            position: fixed; inset: 0; pointer-events: none; z-index: 50;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            background-size: 100% 3px, 3px 100%; opacity: 0.6;
+            position: fixed; inset: 0; pointer-events: none; z-index: 40;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.2), rgba(0,0,0,0.2) 1px, transparent 1px, transparent 2px);
+            opacity: 0.3;
+        }
+        
+        .glass-panel {
+            background: rgba(15, 15, 20, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         }
 
-        .ticket-card {
-            background: rgba(10, 10, 12, 0.4);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-            position: relative; overflow: hidden;
+        .ticket-row {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 2px solid transparent;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.02) 100%);
         }
-        .ticket-card::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 100%;
-            background: #333; transition: background 0.3s;
+        .ticket-row:hover {
+            background: linear-gradient(90deg, rgba(242, 201, 76, 0.05) 0%, rgba(0,0,0,0.5) 100%);
+            border-left-color: #F2C94C;
+            transform: translateX(4px);
+            padding-left: 1rem; 
         }
-        .ticket-card:hover {
-            transform: translateX(10px) scale(1.01);
-            background: rgba(20, 20, 20, 0.8);
-            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.8);
-            border-color: rgba(230, 194, 0, 0.3);
+
+        .scroller::-webkit-scrollbar { width: 4px; }
+        .scroller::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+        .scroller::-webkit-scrollbar-thumb:hover { background: #F2C94C; }
+
+        /* LOADING ANIMATION */
+        #loader {
+            position: fixed; inset: 0; background: #000; z-index: 100;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
         }
-        
-        /* Scrollbar */
-        .scroller::-webkit-scrollbar { width: 0px; background: transparent; }
-        
-        /* Glitch Text */
-        .glitch-text:hover { animation: glitch 0.3s infinite; color: #E6C200; cursor: pointer; }
-        @keyframes glitch {
-            0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) }
-            40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) }
-            80% { transform: translate(2px, -2px) } 100% { transform: translate(0) }
+        .loader-bar {
+            width: 200px; height: 1px; background: #333; margin-top: 20px; position: relative; overflow: hidden;
         }
-        
-        /* Loading Overlay */
-        #intro-screen {
-            background: #000; z-index: 100; position: fixed; inset: 0;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        .loader-fill {
+            position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #F2C94C;
         }
     </style>
 </head>
 
-<body x-data="singularity()" class="font-tech antialiased">
+<body x-data="system()" class="font-tech">
 
-    <div id="canvas-container" class="fixed inset-0 z-0"></div>
+    <div id="canvas-wrapper" class="fixed inset-0 z-0"></div>
     <div class="scanlines"></div>
 
-    <div id="intro-screen">
-        <h1 class="font-display text-4xl text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 tracking-[0.5em] animate-pulse">
-            LOADING CORE
-        </h1>
-        <div class="w-64 h-0.5 bg-gray-800 mt-4 overflow-hidden">
-            <div class="h-full bg-gold w-0" id="intro-bar"></div>
-        </div>
+    <div id="loader">
+        <h1 class="font-display text-2xl tracking-[0.5em] text-gold animate-pulse">INITIALIZING</h1>
+        <div class="loader-bar"><div class="loader-fill" id="load-progress"></div></div>
     </div>
 
-    <main class="relative z-10 w-full h-screen flex p-4 lg:p-8 gap-8 opacity-0" id="main-interface">
+    <main class="relative z-10 w-full h-screen flex p-6 gap-6 opacity-0" id="interface">
         
-        <div class="w-2/3 flex flex-col h-full relative z-20">
-            <header class="flex justify-between items-end mb-6 pb-4 border-b border-white/10 bg-gradient-to-r from-black/50 to-transparent backdrop-blur-sm p-4 rounded-sm">
+        <div class="w-3/4 flex flex-col h-full relative">
+            <header class="flex justify-between items-end mb-6 pb-4 border-b border-white/10 glass-panel p-6 rounded-sm">
                 <div>
                     <div class="flex items-center gap-2 mb-1">
-                        <div class="w-2 h-2 rounded-full" :class="statusColor"></div>
-                        <span class="font-mono text-[10px] text-gray-400 tracking-widest" x-text="statusText"></span>
+                        <div class="w-1.5 h-1.5 rounded-full" :class="statusColor"></div>
+                        <span class="font-mono text-[9px] text-gray-400 tracking-widest uppercase" x-text="statusText"></span>
                     </div>
-                    <h1 class="font-display text-3xl text-white">CHRONEXT<span class="text-gold">_OPS</span></h1>
+                    <h1 class="font-display text-4xl text-white tracking-wide">CHRONEXT<span class="text-gold">_OPS</span></h1>
                 </div>
-                <div class="flex gap-4">
-                    <button @click="openModal()" class="px-6 py-2 border border-white/20 hover:border-gold hover:text-gold hover:bg-gold/5 transition-all font-mono text-xs tracking-widest uppercase bg-black/40 backdrop-blur">
-                        [ + ] NEW INTEL
+                <div class="flex gap-3">
+                    <button @click="openModal()" class="group relative px-6 py-3 border border-white/10 overflow-hidden bg-black/40 hover:border-gold transition-colors">
+                        <span class="relative z-10 font-mono text-xs tracking-[0.2em] text-gold group-hover:text-white transition-colors">INJECT_DATA</span>
+                        <div class="absolute inset-0 bg-gold transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
                     </button>
-                    <button @click="syncData()" class="w-10 h-10 border border-white/20 flex items-center justify-center hover:bg-white/10 transition-all bg-black/40">
-                        <svg class="w-4 h-4 text-gray-400" :class="{'animate-spin text-gold': isLoading}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <button @click="syncData()" class="w-12 border border-white/10 flex items-center justify-center hover:bg-white/5 group">
+                        <svg class="w-4 h-4 text-gray-500 group-hover:text-gold transition-colors" :class="isLoading ? 'animate-spin text-gold' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     </button>
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto scroller space-y-3 pb-10">
+            <div class="flex-1 overflow-y-auto scroller pr-2 space-y-1">
                 <template x-for="ticket in sortedTickets" :key="ticket.id">
-                    <div :id="'t-'+ticket.id" class="ticket-card p-4 group"
-                         :class="ticket.severity >= 9 ? 'hover:border-l-alert' : 'hover:border-l-gold'">
-                         
-                        <div class="absolute left-0 top-0 bottom-0 w-[3px] transition-colors duration-300"
-                             :class="ticket.severity >= 9 ? 'bg-alert' : (ticket.severity >= 6 ? 'bg-gold' : 'bg-gray-600')"></div>
+                    <div :id="'row-'+ticket.id" class="ticket-row p-4 glass-panel mb-2 relative group cursor-default">
+                        
+                        <div class="absolute right-0 top-0 bottom-0 w-1 opacity-50" :class="getSeverityColor(ticket.severity)"></div>
 
-                        <div class="flex justify-between items-start pl-3">
-                            <div class="w-3/4">
+                        <div class="flex justify-between items-start">
+                            <div class="w-4/5">
                                 <div class="flex items-center gap-3 mb-1">
-                                    <span class="font-display font-bold text-lg" :class="ticket.severity >= 9 ? 'text-alert' : 'text-white'" x-text="ticket.severity"></span>
-                                    <span class="font-mono text-xs text-gray-500" x-text="ticket.ref_id"></span>
-                                    <span class="font-bold text-sm tracking-wide" x-text="ticket.client"></span>
+                                    <span class="font-display font-bold text-xl" :class="getSeverityTextColor(ticket.severity)" x-text="'L' + ticket.severity"></span>
+                                    <span class="font-mono text-xs text-gray-500 border border-white/10 px-1" x-text="ticket.ref_id"></span>
+                                    <span class="font-bold text-sm tracking-wide text-white" x-text="ticket.client"></span>
                                 </div>
-                                <p class="text-xs text-gray-400 font-sans leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity" x-text="ticket.context"></p>
                                 
-                                <div class="flex flex-wrap gap-2 mt-2">
-                                    <span class="text-[9px] font-mono border border-white/10 px-1.5 py-0.5 text-gray-500 uppercase rounded-sm" x-text="ticket.action"></span>
+                                <p class="text-[11px] text-gray-400 font-mono leading-relaxed opacity-80 group-hover:opacity-100 max-w-2xl" x-text="ticket.context"></p>
+                                
+                                <div class="flex flex-wrap gap-2 mt-3 items-center">
+                                    <span class="text-[9px] font-mono bg-white/5 text-gray-400 px-2 py-0.5 uppercase tracking-widest" x-text="ticket.action"></span>
+                                    
                                     <template x-if="ticket.wait_time_alert">
-                                        <div class="flex items-center gap-1 border border-alert/30 px-1.5 py-0.5 bg-alert/5">
-                                            <span class="w-1 h-1 bg-alert rounded-full animate-pulse"></span>
+                                        <div class="flex items-center gap-2 px-2 py-0.5 border border-alert/40 bg-alert/5">
+                                            <span class="w-1 h-1 bg-alert rounded-full animate-ping"></span>
                                             <span class="text-[9px] font-mono text-alert uppercase" x-text="ticket.wait_time_alert"></span>
                                         </div>
                                     </template>
+
                                     <template x-if="ticket.meta_copy">
-                                        <button @click="copy(ticket.meta_copy)" class="text-[9px] font-mono bg-white/5 hover:bg-gold hover:text-black px-1.5 py-0.5 transition-colors uppercase border border-transparent hover:border-gold">
-                                            COPY DATA
+                                        <button @click="copy(ticket.meta_copy)" class="flex items-center gap-1 text-[9px] font-mono text-gold hover:underline opacity-60 hover:opacity-100 transition-opacity">
+                                            <span>COPY_META</span>
+                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
                                         </button>
                                     </template>
                                 </div>
                             </div>
 
-                            <div class="flex flex-col items-end gap-2 opacity-30 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0 duration-300">
+                            <div class="flex flex-col gap-2 opacity-20 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                 <template x-if="ticket.link">
-                                    <a :href="ticket.link" target="_blank" class="text-[9px] font-mono hover:text-gold border-b border-transparent hover:border-gold pb-0.5">OPEN LINK</a>
+                                    <a :href="ticket.link" target="_blank" class="px-3 py-1 border border-white/20 text-[9px] font-mono hover:bg-gold hover:text-black hover:border-gold transition-colors text-center">OPEN</a>
                                 </template>
-                                <button @click="archive(ticket.id)" class="text-[9px] font-mono hover:text-alert border-b border-transparent hover:border-alert pb-0.5">RESOLVE</button>
+                                <button @click="archive(ticket.id)" class="px-3 py-1 border border-white/10 text-[9px] font-mono text-gray-500 hover:text-alert hover:border-alert transition-colors">DONE</button>
                             </div>
                         </div>
                     </div>
                 </template>
-                
-                <div x-show="tickets.length === 0" class="h-64 flex flex-col items-center justify-center text-gray-600">
-                    <span class="text-4xl text-gold mb-2 animate-bounce">❖</span>
-                    <span class="font-display tracking-widest text-sm">NO ACTIVE THREATS</span>
+
+                <div x-show="tickets.length === 0" class="h-64 flex flex-col items-center justify-center text-gray-700">
+                    <div class="w-16 h-16 border border-white/5 rounded-full flex items-center justify-center mb-4">
+                        <div class="w-1 h-1 bg-gold rounded-full animate-ping"></div>
+                    </div>
+                    <span class="font-display tracking-[0.3em] text-xs opacity-50">NO ACTIVE SIGNALS</span>
                 </div>
             </div>
         </div>
 
-        <div class="w-1/3 flex flex-col justify-end p-8 border-l border-white/5 pointer-events-none relative z-20">
-            <div class="bg-black/60 backdrop-blur-md p-6 border border-white/10 shadow-2xl rounded-sm">
-                <h3 class="font-display text-xl text-white mb-4">GRAVITY WELL STATUS</h3>
-                
-                <div class="mb-6">
-                    <div class="flex justify-between text-[10px] font-mono text-gray-500 mb-1">
-                        <span>ENTROPY_LEVEL</span>
-                        <span x-text="stressLevel + '%'"></span>
-                    </div>
-                    <div class="w-full h-1 bg-gray-800 relative overflow-hidden">
-                        <div class="h-full absolute left-0 top-0 transition-all duration-1000 ease-out"
-                             :class="stressLevel > 50 ? 'bg-alert' : 'bg-gold'"
-                             :style="'width: ' + stressLevel + '%'"></div>
-                    </div>
+        <div class="w-1/4 h-full flex flex-col pointer-events-none relative z-20 pl-6 border-l border-white/5">
+            <div class="glass-panel p-6 flex-1 flex flex-col relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-20">
+                    <svg class="w-12 h-12 text-gold animate-[spin_12s_linear_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke-width="0.5" stroke-dasharray="2 4"></path></svg>
                 </div>
+
+                <h3 class="font-display text-2xl text-white mb-6">GRAVITY<br><span class="text-gold">MONITOR</span></h3>
                 
-                <div class="font-mono text-[10px] leading-relaxed text-gray-400">
-                    <p class="mb-2 text-gold">[ SYSTEM LOG ]</p>
-                    <p x-show="tickets.length > 0">Detected <span x-text="tickets.length" class="text-white"></span> active operational anomalies. Visual distortion field active. Prioritize Severity 10 items.</p>
-                    <p x-show="tickets.length === 0">System stabilized. Singularity maintained. Awaiting input stream.</p>
+                <div class="space-y-8">
+                    <div>
+                        <div class="flex justify-between text-[9px] font-mono text-gray-400 mb-2 uppercase">
+                            <span>System Load</span>
+                            <span x-text="stressLevel + '%'"></span>
+                        </div>
+                        <div class="h-0.5 w-full bg-gray-800">
+                            <div class="h-full bg-gold transition-all duration-1000" :style="'width: ' + stressLevel + '%'"></div>
+                        </div>
+                    </div>
+
+                    <div class="font-mono text-[10px] text-gray-500 space-y-2">
+                        <p class="text-gold border-l-2 border-gold pl-2">ACTIVE PROTOCOLS</p>
+                        <p>Temporal Analysis: <span class="text-white">ENABLED</span></p>
+                        <p>Auto-Escalation: <span class="text-white">ENABLED</span></p>
+                        <p>Encryption: <span class="text-white">LOCAL/CLOUD</span></p>
+                    </div>
+
+                    <div class="mt-auto pt-10">
+                        <p class="font-display text-4xl text-white opacity-10" x-text="tickets.length"></p>
+                        <p class="font-mono text-[9px] text-gray-600 uppercase tracking-widest">Pending Cases</p>
+                    </div>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <div x-show="showModal" 
-         x-transition.opacity
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-lg">
-        
-        <div class="w-full max-w-6xl h-[80vh] bg-[#050505] border border-white/10 flex shadow-2xl">
+    <div x-show="showModal" x-transition.opacity.duration.300ms class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md">
+        <div class="w-full max-w-5xl h-[80vh] glass-panel flex shadow-[0_0_100px_rgba(242,201,76,0.1)] border border-gold/20">
             <div class="w-1/2 p-8 border-r border-white/10 flex flex-col">
-                <h2 class="font-display text-2xl text-gold mb-2">DATA INJECTION</h2>
-                <p class="font-mono text-[10px] text-gray-500 mb-6">PASTE RAW COMMUNICATION LOGS. AI WILL PARSE CONTEXT & URGENCY.</p>
-                
-                <textarea x-model="rawData" class="flex-1 bg-black/50 border border-white/10 p-4 font-mono text-xs text-gold resize-none outline-none focus:border-gold transition-colors leading-relaxed" placeholder="Paste emails, slack messages or support tickets here..."></textarea>
-                
-                <div class="flex gap-4 mt-6">
-                    <button @click="showModal = false" class="px-6 py-3 font-mono text-xs border border-white/10 text-gray-500 hover:text-white hover:bg-white/5 transition-all">CANCEL</button>
-                    <button @click="processInput()" class="flex-1 px-6 py-3 bg-gold/10 border border-gold text-gold font-display text-xs tracking-widest hover:bg-gold hover:text-black transition-all font-bold">
-                        <span x-show="!isProcessing">ANALYZE STREAM</span>
-                        <span x-show="isProcessing" class="animate-pulse">DECODING...</span>
-                    </button>
+                <h2 class="font-display text-xl text-gold mb-4">INJECT RAW INTEL</h2>
+                <textarea x-model="rawData" class="flex-1 bg-black/30 border border-white/10 p-4 font-mono text-[11px] text-gray-300 resize-none outline-none focus:border-gold transition-colors" placeholder="Paste emails, messages or tickets here..."></textarea>
+                <div class="flex gap-4 mt-4">
+                    <button @click="showModal = false" class="px-6 py-3 font-mono text-xs text-gray-500 hover:text-white transition-colors">ABORT</button>
+                    <button @click="processInput()" class="flex-1 px-6 py-3 bg-gold text-black font-mono text-xs font-bold tracking-widest hover:bg-white transition-colors">ANALYZE</button>
                 </div>
             </div>
-            
-            <div class="w-1/2 p-8 bg-[#0a0a0c] flex flex-col relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-3xl rounded-full pointer-events-none"></div>
-                
-                <div class="flex justify-between items-end mb-6">
-                    <h2 class="font-display text-xl text-white">DECODED ENTITIES</h2>
-                    <span class="font-mono text-gold text-xs border border-gold/20 px-2 py-1" x-text="detectedCases.length + ' FOUND'"></span>
-                </div>
-
-                <div class="flex-1 overflow-y-auto scroller space-y-2 pr-2">
+            <div class="w-1/2 p-8 bg-black/20 flex flex-col">
+                <h2 class="font-display text-xl text-white mb-4 flex justify-between">
+                    <span>DECODED</span>
+                    <span class="text-gold text-sm font-mono" x-text="detectedCases.length">0</span>
+                </h2>
+                <div class="flex-1 overflow-y-auto scroller space-y-2">
                     <template x-for="(c, i) in detectedCases" :key="i">
-                        <div class="p-3 bg-white/5 border border-white/5 hover:border-gold/50 transition-colors group relative rounded-sm">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="font-display font-bold" :class="c.severity >= 9 ? 'text-alert' : 'text-gold'" x-text="'LVL ' + c.severity"></span>
-                                <span class="font-mono text-[9px] text-gray-500 uppercase" x-text="c.action"></span>
+                        <div class="p-3 border border-white/10 bg-white/5 hover:border-gold/50 transition-colors relative group">
+                            <div class="flex justify-between mb-1">
+                                <span class="font-bold text-gold text-xs" x-text="'PRIORITY ' + c.severity"></span>
+                                <span class="text-[9px] font-mono text-gray-400" x-text="c.action"></span>
                             </div>
-                            <input x-model="c.client" class="w-full bg-transparent border-none p-0 font-sans font-bold text-sm text-white focus:ring-0 mb-1">
-                            <div class="text-[10px] font-mono text-gray-400 truncate" x-text="c.context"></div>
-                            
-                            <div x-show="c.wait_time_alert" class="mt-2 inline-flex items-center gap-2 border border-alert/30 px-2 py-1">
-                                <span class="w-1 h-1 bg-alert rounded-full animate-ping"></span>
-                                <span class="text-[9px] font-mono text-alert uppercase" x-text="c.wait_time_alert"></span>
-                            </div>
-                            
-                            <button @click="detectedCases.splice(i, 1)" class="absolute top-2 right-2 text-gray-600 hover:text-alert opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                            <input x-model="c.client" class="bg-transparent text-white font-bold text-sm w-full outline-none mb-1">
+                            <div class="text-[10px] text-gray-500 truncate" x-text="c.context"></div>
+                            <div x-show="c.wait_time_alert" class="text-[9px] text-alert mt-1 font-mono uppercase" x-text="c.wait_time_alert"></div>
+                            <button @click="detectedCases.splice(i, 1)" class="absolute top-2 right-2 text-gray-500 hover:text-alert opacity-0 group-hover:opacity-100">✕</button>
                         </div>
                     </template>
-                    <div x-show="detectedCases.length === 0" class="h-full flex items-center justify-center text-gray-800 font-mono text-[10px]">
-                        AWAITING INPUT DATA...
-                    </div>
                 </div>
-
-                <button x-show="detectedCases.length > 0" @click="confirmImport()" class="mt-4 w-full py-4 bg-gold text-black font-display font-bold tracking-widest hover:bg-white transition-colors">
-                    COMMIT TO DATABASE
-                </button>
+                <button x-show="detectedCases.length > 0" @click="confirmImport()" class="mt-4 w-full py-3 border border-gold text-gold font-mono text-xs hover:bg-gold hover:text-black transition-colors">COMMIT TO DATABASE</button>
             </div>
         </div>
     </div>
 
     <script>
-        function singularity() {
+        function system() {
             return {
                 tickets: [],
                 detectedCases: [],
                 rawData: '',
                 showModal: false,
-                isProcessing: false,
                 isLoading: false,
-                
-                // Computed logic helpers
-                get stressLevel() {
-                    if (this.tickets.length === 0) return 0;
-                    const total = this.tickets.reduce((acc, t) => acc + t.severity, 0);
-                    return Math.min(total, 100);
-                },
-                get statusText() {
-                    return (CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) ? 'ONLINE (CLOUD SYNC)' : 'OFFLINE (LOCAL STORAGE)';
-                },
-                get statusColor() {
-                    return (CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) ? 'bg-green-500 shadow-[0_0_10px_#0f0]' : 'bg-gray-500';
-                },
 
-                // --- INIT SEQUENCE ---
+                get statusText() { return (CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) ? 'CLOUD UPLINK ACTIVE' : 'LOCAL STORAGE MODE'; },
+                get statusColor() { return (CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) ? 'bg-green-500 shadow-[0_0_10px_#0f0]' : 'bg-gray-500'; },
+                get stressLevel() { return Math.min(this.tickets.reduce((acc, t) => acc + t.severity, 0), 100); },
+
                 async init() {
-                    this.init3D(); // Start Visuals immediately
-                    
-                    // Intro Animation
-                    const tl = gsap.timeline();
-                    tl.to("#intro-bar", { width: "100%", duration: 1.5, ease: "power2.inOut" })
-                      .to("#intro-screen", { opacity: 0, duration: 0.5, onComplete: () => document.getElementById("intro-screen").remove() })
-                      .to("#main-interface", { opacity: 1, duration: 1 });
+                    // Intro
+                    gsap.to("#load-progress", { width: "100%", duration: 1, ease: "expo.inOut" });
+                    gsap.to("#loader", { opacity: 0, delay: 1.2, duration: 0.5, onComplete: () => document.getElementById("loader").remove() });
+                    gsap.to("#interface", { opacity: 1, delay: 1.5, duration: 1 });
 
-                    // Data Load
-                    if(CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) {
+                    this.initVisuals();
+
+                    if(CLOUD_CONFIG.BIN_ID) {
                         await this.loadFromCloud();
                     } else {
-                        console.log("Running in Local Mode");
-                        const local = localStorage.getItem('chronext_v7');
+                        const local = localStorage.getItem('chronext_v8');
                         if(local) this.tickets = JSON.parse(local);
                     }
-                    this.updateVisuals();
                 },
 
-                // --- 1. INTELLIGENCE ENGINE (Regex + Time Logic) ---
+                // --- CORE LOGIC ---
                 processInput() {
-                    this.isProcessing = true;
                     this.detectedCases = [];
+                    const text = this.rawData;
                     
-                    setTimeout(() => {
-                        const text = this.rawData;
-                        // Split Logic: Try splitting by double newline first, fallback to regex keywords
-                        let chunks = text.replace(/\n\s*\n/g, '|||').split('|||');
-                        if(chunks.length < 2 && text.length > 150) {
-                            chunks = text.split(/(?=https:\/\/|Bitte|SR\d|PO\d)/g);
+                    // Robust Splitter
+                    let chunks = text.replace(/\n\s*\n/g, '|||').split('|||');
+                    if(chunks.length < 2 && text.length > 150) chunks = text.split(/(?=https:\/\/|Bitte|SR\d|PO\d)/g);
+
+                    chunks.forEach(chunk => {
+                        if(chunk.length < 15) return;
+                        
+                        let severity = 5, action = "REVIEW", waitAlert = null;
+
+                        // Time Logic
+                        const months = ['jan','feb','mär','apr','mai','jun','jul','aug','sep','okt','nov','dez'];
+                        const mMatch = chunk.match(new RegExp(`(?:seit|vom|ab)\\s+(${months.join('|')})`, 'i'));
+                        if(mMatch) {
+                            const mIdx = months.findIndex(m => mMatch[1].toLowerCase().startsWith(m));
+                            let diff = new Date().getMonth() - mIdx;
+                            if(diff < 0) diff += 12;
+                            if(diff >= 1) { severity += 2; action = "UPDATE"; }
+                            if(diff >= 3) { severity += 3; waitAlert = `WAITING ${diff} MONTHS`; action = "ESCALATION"; }
                         }
 
-                        chunks.forEach(chunk => {
-                            if(chunk.length < 15) return; // Skip noise
-                            
-                            let severity = 5;
-                            let action = "REVIEW";
-                            let waitAlert = null;
-                            
-                            // A. Temporal Analysis (German Months)
-                            const months = ['jan','feb','mär','apr','mai','jun','jul','aug','sep','okt','nov','dez'];
-                            const mMatch = chunk.match(new RegExp(`(?:seit|vom|ab)\\s+(${months.join('|')})`, 'i'));
-                            
-                            if(mMatch) {
-                                const mIdx = months.findIndex(m => mMatch[1].toLowerCase().startsWith(m));
-                                let diff = new Date().getMonth() - mIdx;
-                                if(diff < 0) diff += 12; // Wrap year
-                                if(diff >= 1) { severity += 2; action = "UPDATE CLIENT"; }
-                                if(diff >= 3) { severity += 3; waitAlert = `CRITICAL: ${diff} MONTHS WAITING`; action = "DE-ESCALATE"; }
-                            }
+                        // Keywords
+                        if(/anwalt|lawyer|polizei|betrug/i.test(chunk)) { severity = 10; action = "LEGAL"; }
+                        else if(/geld|iban|auszahlung/i.test(chunk)) { severity += 1; action = "FINANCE"; }
+                        else if(/dhl|versand/i.test(chunk)) { severity += 1; action = "LOGISTICS"; }
+                        else if(/rückruf/i.test(chunk) && action === "REVIEW") action = "CALLBACK";
 
-                            // B. Keyword Scoring
-                            if(/anwalt|lawyer|polizei|betrug|deadline/i.test(chunk)) { severity = 10; action = "LEGAL THREAT"; }
-                            else if(/geld|iban|auszahlung|refund/i.test(chunk)) { severity += 1; action = "FINANCE"; }
-                            else if(/dhl|versand|retoure|driver/i.test(chunk)) { severity += 1; action = "LOGISTICS"; }
-                            else if(/rückruf|call/i.test(chunk) && action === "REVIEW") { action = "CALLBACK"; }
+                        const link = (chunk.match(/https?:\/\/[^\s]+/) || [''])[0];
+                        const ref = (chunk.match(/(SR\d+|PO\d+|#\d+)/i) || [''])[0].toUpperCase();
+                        const meta = (chunk.match(/(\+49[\d\s]+|DE\d{20,})/) || [''])[0].replace(/\s/g,'');
+                        let client = (chunk.match(/(?:Herr|Frau|Mr|Mrs)\.?\s+([A-ZÄÖÜ][a-zäöü]+(?:\s[A-ZÄÖÜ][a-zäöü]+)?)/) || [])[1] || (ref ? "Case " + ref : "Unknown");
 
-                            // C. Extraction
-                            const link = (chunk.match(/https?:\/\/[^\s]+/) || [''])[0];
-                            const ref = (chunk.match(/(SR\d+|PO\d+|#\d+)/i) || [''])[0].toUpperCase();
-                            const meta = (chunk.match(/(\+49[\d\s]+|DE\d{20,})/) || [''])[0].replace(/\s/g,'');
-                            
-                            // Client Name Logic
-                            let client = (chunk.match(/(?:Herr|Frau|Mr|Mrs)\.?\s+([A-ZÄÖÜ][a-zäöü]+(?:\s[A-ZÄÖÜ][a-zäöü]+)?)/) || [])[1];
-                            if(!client) client = ref ? `Case ${ref}` : "Unknown Client";
-
-                            this.detectedCases.push({
-                                id: Date.now() + Math.random(),
-                                client, ref_id: ref, 
-                                context: chunk.replace(link,'').substring(0,140).trim() + "...",
-                                severity: Math.min(severity, 10), 
-                                action, link, meta_copy: meta, wait_time_alert: waitAlert
-                            });
+                        this.detectedCases.push({
+                            id: Date.now() + Math.random(),
+                            client, ref_id: ref, severity: Math.min(severity, 10),
+                            action, link, meta_copy: meta, wait_time_alert: waitAlert,
+                            context: chunk.replace(link,'').substring(0,140).trim() + "..."
                         });
-                        this.isProcessing = false;
-                    }, 800);
+                    });
                 },
 
                 async confirmImport() {
@@ -372,28 +327,22 @@
                     this.showModal = false;
                     this.rawData = '';
                     await this.saveToCloud();
-                    this.updateVisuals();
                 },
 
-                // --- 2. DATA OPERATIONS ---
+                // --- DATA ---
                 async loadFromCloud() {
                     this.isLoading = true;
                     try {
-                        const res = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}/latest`, { 
-                            headers: { 'X-Master-Key': CLOUD_CONFIG.API_KEY } 
-                        });
+                        const res = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}/latest`, { headers: { 'X-Master-Key': CLOUD_CONFIG.API_KEY } });
                         const data = await res.json();
-                        this.tickets = Array.isArray(data.record) ? data.record : [];
-                    } catch(e) { console.error("Sync Error", e); }
+                        // Robust check: handles both raw array and record wrapper
+                        this.tickets = Array.isArray(data.record) ? data.record : (Array.isArray(data) ? data : []);
+                    } catch(e) { console.error(e); }
                     this.isLoading = false;
-                    this.updateVisuals();
                 },
 
                 async saveToCloud() {
-                    if(!CLOUD_CONFIG.BIN_ID) {
-                        localStorage.setItem('chronext_v7', JSON.stringify(this.tickets));
-                        return;
-                    }
+                    if(!CLOUD_CONFIG.BIN_ID) { localStorage.setItem('chronext_v8', JSON.stringify(this.tickets)); return; }
                     this.isLoading = true;
                     await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}`, {
                         method: 'PUT',
@@ -404,82 +353,48 @@
                 },
 
                 archive(id) {
-                    const el = document.getElementById('t-'+id);
-                    gsap.to(el, { x: 50, opacity: 0, duration: 0.3, onComplete: async () => {
+                    const el = document.getElementById('row-'+id);
+                    gsap.to(el, { x: 100, opacity: 0, duration: 0.3, onComplete: () => {
                         this.tickets = this.tickets.filter(t => t.id !== id);
-                        await this.saveToCloud();
-                        this.updateVisuals();
+                        this.saveToCloud();
                     }});
                 },
+
                 copy(t) { navigator.clipboard.writeText(t); },
                 openModal() { this.showModal = true; this.rawData = ''; this.detectedCases = []; },
                 get sortedTickets() { return this.tickets.sort((a,b) => b.severity - a.severity); },
+                
+                // --- STYLING HELPERS ---
+                getSeverityColor(s) { return s >= 9 ? 'bg-alert' : (s >= 6 ? 'bg-gold' : 'bg-gray-600'); },
+                getSeverityTextColor(s) { return s >= 9 ? 'text-alert' : (s >= 6 ? 'text-gold' : 'text-white'); },
 
-                // --- 3. VISUAL ENGINE (Crash-Proof ThreeJS) ---
-                init3D() {
-                    const container = document.getElementById('canvas-container');
+                // --- VISUALS ---
+                initVisuals() {
+                    const container = document.getElementById('canvas-wrapper');
                     const scene = new THREE.Scene();
                     const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-                    const renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
-                    
+                    const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
                     renderer.setSize(window.innerWidth, window.innerHeight);
-                    renderer.setPixelRatio(window.devicePixelRatio);
                     container.appendChild(renderer.domElement);
-                    camera.position.z = 30;
+                    camera.position.z = 50;
 
-                    // Particle System (Glowing effect via AdditiveBlending)
-                    const pGeo = new THREE.BufferGeometry();
-                    const pCount = 1500;
-                    const posArray = new Float32Array(pCount * 3);
-                    for(let i=0; i<pCount*3; i++) posArray[i] = (Math.random()-0.5) * 80;
-                    pGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-                    
-                    // Using Texture for "Glow" without PostProcessing
-                    const sprite = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png');
-                    const pMat = new THREE.PointsMaterial({
-                        size: 0.5, 
-                        color: 0xE6C200, 
-                        map: sprite, 
-                        blending: THREE.AdditiveBlending, 
-                        depthWrite: false, 
-                        transparent: true,
-                        opacity: 0.8
-                    });
-
-                    this.particles = new THREE.Points(pGeo, pMat);
-                    scene.add(this.particles);
-
-                    // Mouse Interaction
-                    let mouseX = 0, mouseY = 0;
-                    document.addEventListener('mousemove', (e) => {
-                        mouseX = (e.clientX - window.innerWidth/2) * 0.001;
-                        mouseY = (e.clientY - window.innerHeight/2) * 0.001;
-                    });
+                    // Starfield
+                    const geo = new THREE.BufferGeometry();
+                    const count = 2000;
+                    const pos = new Float32Array(count * 3);
+                    for(let i=0; i<count*3; i++) pos[i] = (Math.random()-0.5)*150;
+                    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+                    const mat = new THREE.PointsMaterial({size: 0.2, color: 0xF2C94C, transparent: true, opacity: 0.8});
+                    const stars = new THREE.Points(geo, mat);
+                    scene.add(stars);
 
                     const animate = () => {
                         requestAnimationFrame(animate);
-                        this.particles.rotation.y += 0.001;
-                        // Parallax
-                        this.particles.rotation.x += (mouseY - this.particles.rotation.x) * 0.05;
-                        this.particles.rotation.z += (mouseX - this.particles.rotation.z) * 0.05;
+                        stars.rotation.y += 0.0005;
+                        stars.rotation.z += 0.0002;
                         renderer.render(scene, camera);
                     };
                     animate();
-                    this.particlesObj = this.particles; // Reference for updates
-                },
-
-                updateVisuals() {
-                    if(!this.particlesObj) return;
-                    const stress = this.stressLevel;
-                    
-                    if(stress > 60) {
-                        // High Stress: Red, Fast
-                        gsap.to(this.particlesObj.material.color, { r: 1, g: 0.2, b: 0.2, duration: 1 });
-                        gsap.to(this.particlesObj.rotation, { timeScale: 2, duration: 1 });
-                    } else {
-                        // Normal: Gold
-                        gsap.to(this.particlesObj.material.color, { r: 0.9, g: 0.76, b: 0, duration: 1 });
-                    }
                 }
             }
         }
