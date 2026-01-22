@@ -1,1113 +1,1390 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Intervention Dashboard — Escalation Cockpit</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AntiGravity — Command Center</title>
 
-  <!-- Tailwind (CDN, zero build) -->
+  <!-- Tailwind (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Tailwind theme extension -->
+  <!-- GSAP (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
+  <!-- Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
   <script>
     tailwind.config = {
       theme: {
         extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
           colors: {
-            obsidian: "#0B0F14",
-            night: "#07111E",
-            anthracite: "#10161F",
-            smoke: "#A8B3C7",
-            platinum: "#C7D0DE",
-            rose: "#B7866B",      // Roségold
-            carmine: "#B0122D",   // Karmesin
-            legal: "#D11E3A",
-            glass: "rgba(255,255,255,0.06)"
+            ink: { 950: '#070812', 900: '#0a0b16', 800: '#0f1020' }
           },
           boxShadow: {
-            luxe: "0 18px 60px rgba(0,0,0,0.55)",
-            halo: "0 0 0 1px rgba(255,255,255,0.08), 0 18px 60px rgba(0,0,0,0.55)"
+            luxe: '0 40px 120px rgba(0,0,0,.55)',
+            glass: '0 12px 48px rgba(0,0,0,.35)'
           }
         }
       }
     }
   </script>
 
-  <!-- Alpine.js (reactive DOM state) -->
-  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
-
-  <!-- GSAP (micro-interactions, cinematic transitions) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-
-  <!-- ========== SINGLE SOURCE OF TRUTH (EDIT ONLY THIS JSON) ========== -->
-  <script>
-    window.ESCALATIONS = [
-      {
-        "Severity_Index": 10,
-        "Client_Name": "Client A",
-        "Context_Briefing": "Anwaltsschreiben angedroht. IBAN: DE44500105175407324931. Tel: +49 171 2345678. Bitte sofortige Rückmeldung.",
-        "Action_Required": "Legal Risk triage: Sachverhalt prüfen, Rückruf, schriftliche Bestätigung vorbereiten.",
-        "Deep_Link": "https://example.com/case/123",
-        "Timestamp": "2026-01-22T08:12:00Z"
-      },
-      {
-        "Severity_Index": 7,
-        "Client_Name": "Client B",
-        "Context_Briefing": "Logistikfehler: Paket hängt. Tracking: 1Z999AA10123456784. Kunde eskaliert.",
-        "Action_Required": "Ops: Carrier kontaktieren, ETA verifizieren, proaktive Kundeninfo senden.",
-        "Deep_Link": "https://example.com/ticket/456",
-        "Timestamp": "2026-01-21T18:40:00Z"
-      },
-      {
-        "Severity_Index": 3,
-        "Client_Name": "Client C",
-        "Context_Briefing": "Status-Update angefragt, keine Dringlichkeit. Tel: 030 1234567.",
-        "Action_Required": "Kurz antworten: Status, nächste Schritte, Erwartungsmanagement.",
-        "Deep_Link": "https://example.com/crm/789",
-        "Timestamp": "2026-01-20T09:05:00Z"
-      }
-    ];
-  </script>
-
   <style>
-    :root { color-scheme: dark; }
-    html, body { height: 100%; }
-    body {
+    :root{
+      --bg0:#05060a;
+      --bg1:#070812;
+      --glass: rgba(255,255,255,.06);
+      --glass2: rgba(255,255,255,.10);
+      --line: rgba(255,255,255,.10);
+      --line2: rgba(255,255,255,.16);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+      --gold: #c9a86a;
+      --ice: #9bdcff;
+      --danger: #ff6b6b;
+      --warn: #ffcc66;
+      --ok: #7CFFB2;
+    }
+
+    html, body {
+      height: 100%;
+      background: radial-gradient(1200px 800px at 30% 25%, rgba(155,220,255,.12), transparent 60%),
+                  radial-gradient(900px 700px at 70% 75%, rgba(201,168,106,.10), transparent 55%),
+                  linear-gradient(180deg, var(--bg1), var(--bg0));
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    /* Background canvas container */
+    #bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* Subtle film grain & vignette */
+    #fx {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
       background:
-        radial-gradient(1200px 600px at 20% 10%, rgba(183,134,107,0.18), transparent 55%),
-        radial-gradient(900px 500px at 85% 25%, rgba(199,208,222,0.10), transparent 60%),
-        radial-gradient(1100px 800px at 50% 120%, rgba(176,18,45,0.12), transparent 55%),
-        linear-gradient(180deg, #07111E 0%, #0B0F14 60%, #070A0F 100%);
+        radial-gradient(1200px 900px at 50% 35%, transparent 35%, rgba(0,0,0,.55) 85%),
+        repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 3px);
+      mix-blend-mode: overlay;
+      opacity: .28;
+      filter: blur(.2px);
     }
+
+    /* Glass panel */
     .glass {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.10);
-      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.04));
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: var(--tw-shadow-color, 0 12px 48px rgba(0,0,0,.35));
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
     }
+
+    /* Premium hairlines */
     .hairline {
-      background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02), rgba(255,255,255,0.12));
-      height: 1px;
+      border-color: rgba(255,255,255,.12);
     }
-    .chip {
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+
+    /* Custom scroll for table */
+    .scroll-luxe::-webkit-scrollbar { width: 10px; height: 10px; }
+    .scroll-luxe::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.14);
+      border: 2px solid rgba(0,0,0,.0);
+      background-clip: padding-box;
+      border-radius: 10px;
     }
+    .scroll-luxe::-webkit-scrollbar-track { background: rgba(255,255,255,.03); border-radius: 10px; }
+
+    /* Inputs */
+    .field {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .field:focus {
+      border-color: rgba(155,220,255,.38);
+      background: rgba(255,255,255,.06);
+      transform: translateY(-1px);
+    }
+
+    /* Buttons */
     .btn {
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.06);
-      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
-      will-change: transform;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      border-radius: 12px;
+      padding: 10px 14px;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease;
     }
-    .btn:hover { box-shadow: 0 14px 38px rgba(0,0,0,0.45); border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.08); }
-    .btn:active { transform: translateY(1px) scale(0.99); }
-    .card {
-      transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
-      will-change: transform;
+    .btn:hover { transform: translateY(-1px); background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.20); }
+    .btn:active { transform: translateY(0px) scale(.99); }
+
+    .btn-primary {
+      border-color: rgba(155,220,255,.28);
+      background: linear-gradient(180deg, rgba(155,220,255,.18), rgba(155,220,255,.08));
     }
-    .card:hover {
-      transform: translateY(-2px) scale(1.008);
-      box-shadow: 0 22px 70px rgba(0,0,0,0.62);
-      border-color: rgba(255,255,255,0.18);
+    .btn-gold {
+      border-color: rgba(201,168,106,.28);
+      background: linear-gradient(180deg, rgba(201,168,106,.16), rgba(201,168,106,.06));
     }
-    .mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
-    .no-select { user-select: none; }
-    .toast {
-      background: rgba(9, 14, 20, 0.72);
-      border: 1px solid rgba(255,255,255,0.14);
+
+    /* Dial widget */
+    .dial {
+      position: relative;
+      width: 120px; height: 120px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 40% 35%, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+      overflow: hidden;
+    }
+    .dial::after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: conic-gradient(from 210deg, rgba(201,168,106,.0), rgba(201,168,106,.18), rgba(155,220,255,.12), rgba(201,168,106,.0));
+      filter: blur(12px);
+      opacity: .8;
+      animation: dialGlow 9s linear infinite;
+    }
+    @keyframes dialGlow { to { transform: rotate(360deg); } }
+
+    .engraving {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px; height: 26px;
+      border-radius: 999px;
+      border: 1px solid rgba(201,168,106,.22);
+      color: rgba(201,168,106,.95);
+      background: rgba(201,168,106,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+      cursor: default;
+      user-select: none;
+    }
+
+    /* Sisyphus stage */
+    #sisyphusStage{
+      position: fixed;
+      left: 24px;
+      bottom: 22px;
+      width: 420px;
+      height: 220px;
+      pointer-events: none;
+      z-index: 20;
+      opacity: 0;
+      transform: translateY(14px);
+      filter: drop-shadow(0 18px 50px rgba(0,0,0,.55));
+    }
+    #sisyphusHill {
+      position:absolute; inset: 0;
+      background:
+        linear-gradient(140deg, rgba(255,255,255,.00) 30%, rgba(255,255,255,.06) 35%, rgba(255,255,255,.00) 55%),
+        linear-gradient(160deg, rgba(0,0,0,.0) 30%, rgba(0,0,0,.22) 70%),
+        radial-gradient(800px 300px at 20% 140%, rgba(201,168,106,.14), transparent 55%);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+    }
+    #sisyphusFigure {
+      position: absolute;
+      left: 40px;
+      bottom: 46px;
+      width: 120px;
+      opacity: .96;
+    }
+    #sisyphusRock {
+      position: absolute;
+      left: 160px;
+      bottom: 58px;
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.20), rgba(255,255,255,.05));
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 2px 10px rgba(0,0,0,.35);
+    }
+    #sisyphusPlaque {
+      position:absolute;
+      right: 18px;
+      top: 18px;
+      width: 210px;
+      padding: 12px 12px;
+      border-radius: 16px;
+      background: rgba(0,0,0,.20);
+      border: 1px solid rgba(255,255,255,.14);
       backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+      opacity: 0;
+      transform: translateY(6px);
     }
-    .reduce-motion * { transition: none !important; animation: none !important; }
+    #sisyphusPlaque .title{
+      font-size: 12px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.72);
+    }
+    #sisyphusPlaque .count{
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1.05;
+      margin-top: 6px;
+    }
+    #sisyphusPlaque .list{
+      margin-top: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,.68);
+      display: grid;
+      gap: 4px;
+    }
+
+    /* Connection badge */
+    .badge {
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.05);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,.72);
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .dot { width:8px; height:8px; border-radius:999px; background: rgba(255,255,255,.45); }
+    .dot.ok { background: rgba(124,255,178,.75); }
+    .dot.warn { background: rgba(255,204,102,.8); }
   </style>
 </head>
 
-<body class="text-platinum">
-  <div
-    x-data="dashboard()"
-    x-init="init()"
-    :class="reducedMotion ? 'reduce-motion' : ''"
-    class="min-h-screen"
-  >
-    <!-- Header -->
-    <header class="px-5 md:px-8 pt-7 pb-4">
-      <div class="max-w-6xl mx-auto">
-        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-          <div>
-            <div class="text-xs uppercase tracking-[0.28em] text-smoke/80 no-select">High-Fidelity Intervention Dashboard</div>
-            <h1 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
-              Escalation Cockpit
-              <span class="text-smoke/70 font-normal">— form follows function, but the function wears a Patek suit.</span>
-            </h1>
+<body>
+  <!-- Three.js background -->
+  <div id="bg" aria-hidden="true"></div>
+  <div id="fx" aria-hidden="true"></div>
+
+  <!-- Main UI -->
+  <main class="relative z-10 h-full w-full">
+    <section class="h-full w-full flex items-center justify-center p-6">
+      <div id="panel" class="glass shadow-glass w-full max-w-6xl rounded-3xl overflow-hidden">
+        <!-- Header -->
+        <header class="px-6 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div class="flex items-start gap-4">
+            <div class="dial shrink-0"></div>
+            <div>
+              <div class="text-xs tracking-[.24em] uppercase text-white/60">AntiGravity</div>
+              <h1 class="text-2xl md:text-3xl font-semibold leading-tight">
+                Command Center <span class="text-white/50 font-normal">— Intervention Dashboard</span>
+              </h1>
+              <p class="text-sm text-white/60 mt-1 max-w-xl">
+                Kollaboration via JSON-Bin: kein Backend-Pathos, nur konsequente Persistenz. 3D ist Atmosphäre, nicht Ablenkung.
+              </p>
+            </div>
           </div>
 
-          <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <div class="glass rounded-xl px-4 py-3">
-              <div class="flex items-center gap-3 text-sm">
-                <div class="flex items-center gap-2">
-                  <span class="inline-block w-2 h-2 rounded-full" style="background:#D11E3A"></span>
-                  <span class="text-smoke/85">Critical</span>
-                  <span class="mono text-platinum" x-text="counts.t1"></span>
-                </div>
-                <div class="w-px h-4 bg-white/10"></div>
-                <div class="flex items-center gap-2">
-                  <span class="inline-block w-2 h-2 rounded-full" style="background:#B7866B"></span>
-                  <span class="text-smoke/85">Ops</span>
-                  <span class="mono text-platinum" x-text="counts.t2"></span>
-                </div>
-                <div class="w-px h-4 bg-white/10"></div>
-                <div class="flex items-center gap-2">
-                  <span class="inline-block w-2 h-2 rounded-full" style="background:#C7D0DE"></span>
-                  <span class="text-smoke/85">Standard</span>
-                  <span class="mono text-platinum" x-text="counts.t3"></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="glass rounded-xl px-4 py-3 flex items-center gap-3">
-              <input
-                x-model="query"
-                type="text"
-                placeholder="Search (Name / Context / Action)…"
-                class="bg-transparent outline-none text-sm w-56 md:w-72 placeholder:text-smoke/60"
-              />
-              <button class="btn magnetic rounded-lg px-3 py-2 text-xs text-smoke/85 hover:text-platinum"
-                      @click="query=''; toast('Search cleared.')">
-                Clear
-              </button>
-            </div>
-
-            <button class="btn magnetic rounded-xl px-4 py-3 text-sm"
-                    @click="showDismissed = !showDismissed">
-              <span class="text-smoke/80">Dismissed</span>
-              <span class="mono ml-2" x-text="counts.dismissed"></span>
-              <span class="ml-2 text-smoke/70" x-text="showDismissed ? '▾' : '▸'"></span>
-            </button>
+          <div class="flex flex-wrap items-center gap-2 md:justify-end">
+            <span id="connBadge" class="badge">
+              <span class="dot warn" id="connDot"></span>
+              <span id="connText">Local simulation</span>
+            </span>
+            <button id="btnConfig" class="btn">Config</button>
+            <button id="btnSync" class="btn btn-primary">Sync</button>
+            <button id="btnSave" class="btn btn-gold">Save</button>
           </div>
-        </div>
+        </header>
 
-        <div class="mt-5 hairline opacity-60"></div>
-      </div>
-    </header>
-
-    <!-- Sticky Critical Tier -->
-    <section class="px-5 md:px-8">
-      <div class="max-w-6xl mx-auto">
-        <div class="sticky top-3 z-40">
-          <template x-if="tier1Filtered.length">
-            <div class="glass rounded-2xl p-4 md:p-5 border border-white/10">
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <div class="w-2.5 h-2.5 rounded-full bg-legal"></div>
-                  <div class="text-sm uppercase tracking-[0.22em] text-smoke/80">Tier 1 — Legal/Financial Risk</div>
-                </div>
-                <button class="btn magnetic rounded-xl px-4 py-2 text-xs"
-                        @click="scrollToSection('tier2')">
-                  Jump to Ops ↓
-                </button>
+        <!-- KPIs -->
+        <section class="px-6 pb-4">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div class="glass rounded-2xl p-4 hairline">
+              <div class="text-xs tracking-[.22em] uppercase text-white/55">Open Tickets</div>
+              <div class="mt-2 flex items-end gap-3">
+                <div id="kpiOpen" class="text-4xl font-semibold">—</div>
+                <div class="text-sm text-white/55 pb-1">gesamt</div>
               </div>
-
-              <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <template x-for="t in tier1Filtered" :key="t.id">
-                  <div
-                    class="glass card rounded-2xl p-4 md:p-5 relative overflow-hidden border border-white/10"
-                    data-card
-                    :data-id="t.id"
-                  >
-                    <div class="absolute inset-0 pointer-events-none opacity-60"
-                         :style="`background: radial-gradient(500px 120px at 25% 0%, rgba(209,30,58,0.22), transparent 55%),
-                                           radial-gradient(500px 160px at 80% 10%, rgba(183,134,107,0.14), transparent 60%)`">
-                    </div>
-
-                    <div class="relative flex items-start justify-between gap-3">
-                      <div class="min-w-0">
-                        <div class="flex items-center gap-2">
-                          <span class="text-xs uppercase tracking-[0.22em] text-smoke/80">CRITICAL</span>
-                          <span class="mono text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5">
-                            SVI <span x-text="t.Severity_Index"></span>/10
-                          </span>
-                        </div>
-                        <div class="mt-2 text-lg font-semibold truncate" x-text="t.Client_Name"></div>
-                        <div class="mt-1 text-sm text-smoke/85 line-clamp-2" x-text="t.Action_Required"></div>
-                      </div>
-
-                      <div class="flex flex-col items-end gap-2 shrink-0">
-                        <div class="text-xs text-smoke/70 mono" x-text="formatRelative(t.Timestamp)"></div>
-                        <a class="btn magnetic rounded-xl px-4 py-2 text-xs font-medium"
-                           :class="t.Deep_Link ? 'text-platinum' : 'text-smoke/50 pointer-events-none opacity-60'"
-                           :href="t.Deep_Link || '#'"
-                           target="_blank" rel="noopener">
-                          Open Case File →
-                        </a>
-                      </div>
-                    </div>
-
-                    <div class="mt-4 flex items-center justify-between gap-3 relative">
-                      <button class="btn magnetic rounded-xl px-4 py-2 text-xs"
-                              @click="toggleExpand(t.id, $event)">
-                        <span x-text="expanded[t.id] ? 'Collapse' : 'Expand'"></span>
-                      </button>
-
-                      <button class="btn magnetic rounded-xl px-4 py-2 text-xs border-legal/50"
-                              @click="dismissTicket(t, $event)">
-                        Dismiss (not delete)
-                      </button>
-                    </div>
-
-                    <div class="relative mt-4 overflow-hidden" data-details style="height:0; opacity:0">
-                      <div class="hairline opacity-50 mb-4"></div>
-
-                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">Context</div>
-                          <div class="mt-2 text-sm text-smoke/90 leading-relaxed" x-text="t.Context_Briefing"></div>
-                        </div>
-                        <div>
-                          <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">One‑Tap Extraction</div>
-                          <div class="mt-2 flex flex-wrap gap-2">
-                            <template x-for="token in extractTokens(t)" :key="token.value + token.type">
-                              <button class="chip rounded-xl px-3 py-2 text-xs flex items-center gap-2 btn magnetic"
-                                      @click="copy(token.value)">
-                                <span class="text-smoke/70" x-text="token.type"></span>
-                                <span class="mono text-platinum" x-text="token.value"></span>
-                                <span class="text-smoke/60">⧉</span>
-                              </button>
-                            </template>
-                            <template x-if="extractTokens(t).length === 0">
-                              <div class="text-xs text-smoke/60">No extractable tokens detected.</div>
-                            </template>
-                          </div>
-
-                          <div class="mt-4 text-xs text-smoke/60 mono">
-                            Timestamp: <span x-text="formatExact(t.Timestamp)"></span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Pulsing halo hook -->
-                    <div class="absolute -inset-8 pointer-events-none opacity-0" data-critical-halo></div>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </template>
-
-          <template x-if="!tier1Filtered.length">
-            <div class="glass rounded-2xl p-4 md:p-5 border border-white/10">
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <div class="w-2.5 h-2.5 rounded-full bg-platinum/70"></div>
-                  <div class="text-sm uppercase tracking-[0.22em] text-smoke/80">Tier 1 — clear</div>
-                </div>
-                <div class="text-xs text-smoke/60">No critical items above the fold. Enjoy it while it lasts.</div>
-              </div>
-            </div>
-          </template>
-        </div>
-      </div>
-    </section>
-
-    <!-- Main tiers -->
-    <main class="px-5 md:px-8 pt-6 pb-16">
-      <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Tier 2 -->
-        <section id="tier2" class="lg:col-span-7">
-          <div class="glass rounded-2xl p-5">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">Tier 2</div>
-                <div class="mt-1 text-lg font-semibold">Operational Failure</div>
-              </div>
-              <div class="text-xs text-smoke/60 mono" x-text="'Showing ' + tier2Filtered.length"></div>
+              <div id="kpiOpenHint" class="text-xs text-white/45 mt-2">…</div>
             </div>
 
-            <div class="mt-4 hairline opacity-60"></div>
-
-            <div class="mt-5 grid grid-cols-1 gap-4">
-              <template x-for="t in tier2Filtered" :key="t.id">
-                <div class="glass card rounded-2xl p-4 md:p-5 border border-white/10 relative overflow-hidden"
-                     data-card :data-id="t.id">
-                  <div class="absolute inset-0 pointer-events-none opacity-50"
-                       :style="`background: radial-gradient(520px 140px at 10% 0%, rgba(183,134,107,0.22), transparent 58%),
-                                       radial-gradient(520px 180px at 90% 20%, rgba(199,208,222,0.10), transparent 60%)`"></div>
-
-                  <div class="relative flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-2">
-                        <span class="mono text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5">
-                          SVI <span x-text="t.Severity_Index"></span>/10
-                        </span>
-                        <span class="text-xs uppercase tracking-[0.22em] text-smoke/80">OPS</span>
-                      </div>
-                      <div class="mt-2 text-base font-semibold truncate" x-text="t.Client_Name"></div>
-                      <div class="mt-1 text-sm text-smoke/85 line-clamp-2" x-text="t.Action_Required"></div>
-                    </div>
-
-                    <div class="flex flex-col items-end gap-2 shrink-0">
-                      <div class="text-xs text-smoke/70 mono" x-text="formatRelative(t.Timestamp)"></div>
-                      <a class="btn magnetic rounded-xl px-4 py-2 text-xs font-medium"
-                         :class="t.Deep_Link ? 'text-platinum' : 'text-smoke/50 pointer-events-none opacity-60'"
-                         :href="t.Deep_Link || '#'"
-                         target="_blank" rel="noopener">
-                        Open Case File →
-                      </a>
-                    </div>
-                  </div>
-
-                  <div class="mt-4 flex items-center justify-between gap-3 relative">
-                    <button class="btn magnetic rounded-xl px-4 py-2 text-xs"
-                            @click="toggleExpand(t.id, $event)">
-                      <span x-text="expanded[t.id] ? 'Collapse' : 'Expand'"></span>
-                    </button>
-
-                    <button class="btn magnetic rounded-xl px-4 py-2 text-xs"
-                            @click="dismissTicket(t, $event)">
-                      Dismiss
-                    </button>
-                  </div>
-
-                  <div class="relative mt-4 overflow-hidden" data-details style="height:0; opacity:0">
-                    <div class="hairline opacity-50 mb-4"></div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">Context</div>
-                        <div class="mt-2 text-sm text-smoke/90 leading-relaxed" x-text="t.Context_Briefing"></div>
-                      </div>
-                      <div>
-                        <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">One‑Tap Extraction</div>
-                        <div class="mt-2 flex flex-wrap gap-2">
-                          <template x-for="token in extractTokens(t)" :key="token.value + token.type">
-                            <button class="chip rounded-xl px-3 py-2 text-xs flex items-center gap-2 btn magnetic"
-                                    @click="copy(token.value)">
-                              <span class="text-smoke/70" x-text="token.type"></span>
-                              <span class="mono text-platinum" x-text="token.value"></span>
-                              <span class="text-smoke/60">⧉</span>
-                            </button>
-                          </template>
-                          <template x-if="extractTokens(t).length === 0">
-                            <div class="text-xs text-smoke/60">No extractable tokens detected.</div>
-                          </template>
-                        </div>
-
-                        <div class="mt-4 text-xs text-smoke/60 mono">
-                          Timestamp: <span x-text="formatExact(t.Timestamp)"></span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+            <div class="glass rounded-2xl p-4 hairline">
+              <div class="text-xs tracking-[.22em] uppercase text-white/55">Priorities</div>
+              <div class="mt-2 grid grid-cols-3 gap-2 text-sm">
+                <div class="rounded-xl bg-white/5 border border-white/10 p-3">
+                  <div class="text-white/50 text-xs">P1</div>
+                  <div id="kpiP1" class="text-xl font-semibold mt-1">—</div>
                 </div>
-              </template>
+                <div class="rounded-xl bg-white/5 border border-white/10 p-3">
+                  <div class="text-white/50 text-xs">P2</div>
+                  <div id="kpiP2" class="text-xl font-semibold mt-1">—</div>
+                </div>
+                <div class="rounded-xl bg-white/5 border border-white/10 p-3">
+                  <div class="text-white/50 text-xs">P3</div>
+                  <div id="kpiP3" class="text-xl font-semibold mt-1">—</div>
+                </div>
+              </div>
+              <div class="text-xs text-white/45 mt-2">Easter Egg: jede 3. erledigte P3-Eskalation.</div>
+            </div>
 
-              <template x-if="tier2Filtered.length === 0">
-                <div class="text-sm text-smoke/70">No Tier‑2 items (under current search filter).</div>
-              </template>
+            <div class="glass rounded-2xl p-4 hairline">
+              <div class="text-xs tracking-[.22em] uppercase text-white/55">Health</div>
+              <div class="mt-2 flex items-center justify-between">
+                <div>
+                  <div class="text-sm text-white/55">Last sync</div>
+                  <div id="kpiLastSync" class="text-lg font-semibold mt-1">—</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm text-white/55">Mode</div>
+                  <div id="kpiMode" class="text-lg font-semibold mt-1">—</div>
+                </div>
+              </div>
+              <div class="text-xs text-white/45 mt-2">Optimistisch, aber nicht naiv: Konflikte werden sichtbar, nicht „magisch“ gelöst.</div>
+            </div>
+
+            <div class="glass rounded-2xl p-4 hairline">
+              <div class="text-xs tracking-[.22em] uppercase text-white/55">Quick Actions</div>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button id="btnAdd" class="btn btn-primary">Add Entry</button>
+                <button id="btnSeed" class="btn">Seed Demo</button>
+                <button id="btnUploadSisy" class="btn">Sisyphus Image</button>
+              </div>
+              <div class="text-xs text-white/45 mt-2">Tipp: <span class="text-white/60">Cmd/Ctrl + K</span> öffnet Quick Add.</div>
             </div>
           </div>
         </section>
 
-        <!-- Tier 3 + Dismissed -->
-        <aside class="lg:col-span-5 space-y-6">
-          <section class="glass rounded-2xl p-5">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">Tier 3</div>
-                <div class="mt-1 text-lg font-semibold">Standard Inbound</div>
-              </div>
-              <div class="text-xs text-smoke/60 mono" x-text="'Showing ' + tier3Filtered.length"></div>
+        <!-- Table -->
+        <section class="px-6 pb-6">
+          <div class="glass rounded-2xl hairline overflow-hidden">
+            <div class="px-4 py-3 flex items-center justify-between">
+              <div class="text-xs tracking-[.22em] uppercase text-white/55">Entries</div>
+              <div class="text-xs text-white/45" id="statusLine">…</div>
             </div>
 
-            <div class="mt-4 hairline opacity-60"></div>
-
-            <div class="mt-5 grid grid-cols-1 gap-4">
-              <template x-for="t in tier3Filtered" :key="t.id">
-                <div class="glass card rounded-2xl p-4 border border-white/10 relative overflow-hidden"
-                     data-card :data-id="t.id">
-                  <div class="absolute inset-0 pointer-events-none opacity-45"
-                       :style="`background: radial-gradient(520px 160px at 15% 0%, rgba(199,208,222,0.12), transparent 60%)`"></div>
-
-                  <div class="relative flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-2">
-                        <span class="mono text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5">
-                          SVI <span x-text="t.Severity_Index"></span>/10
-                        </span>
-                        <span class="text-xs uppercase tracking-[0.22em] text-smoke/80">STD</span>
-                      </div>
-                      <div class="mt-2 text-sm font-semibold truncate" x-text="t.Client_Name"></div>
-                      <div class="mt-1 text-xs text-smoke/85 line-clamp-2" x-text="t.Action_Required"></div>
-                    </div>
-
-                    <div class="flex flex-col items-end gap-2 shrink-0">
-                      <div class="text-xs text-smoke/70 mono" x-text="formatRelative(t.Timestamp)"></div>
-                      <a class="btn magnetic rounded-xl px-3 py-2 text-xs font-medium"
-                         :class="t.Deep_Link ? 'text-platinum' : 'text-smoke/50 pointer-events-none opacity-60'"
-                         :href="t.Deep_Link || '#'"
-                         target="_blank" rel="noopener">
-                        Open →
-                      </a>
-                    </div>
-                  </div>
-
-                  <div class="mt-3 flex items-center justify-between gap-3 relative">
-                    <button class="btn magnetic rounded-xl px-3 py-2 text-xs"
-                            @click="toggleExpand(t.id, $event)">
-                      <span x-text="expanded[t.id] ? 'Collapse' : 'Expand'"></span>
-                    </button>
-
-                    <button class="btn magnetic rounded-xl px-3 py-2 text-xs"
-                            @click="dismissTicket(t, $event)">
-                      Dismiss
-                    </button>
-                  </div>
-
-                  <div class="relative mt-3 overflow-hidden" data-details style="height:0; opacity:0">
-                    <div class="hairline opacity-50 mb-3"></div>
-                    <div class="text-xs text-smoke/90 leading-relaxed" x-text="t.Context_Briefing"></div>
-
-                    <div class="mt-3 flex flex-wrap gap-2">
-                      <template x-for="token in extractTokens(t)" :key="token.value + token.type">
-                        <button class="chip rounded-xl px-3 py-2 text-xs flex items-center gap-2 btn magnetic"
-                                @click="copy(token.value)">
-                          <span class="text-smoke/70" x-text="token.type"></span>
-                          <span class="mono text-platinum" x-text="token.value"></span>
-                          <span class="text-smoke/60">⧉</span>
-                        </button>
-                      </template>
-                      <template x-if="extractTokens(t).length === 0">
-                        <div class="text-xs text-smoke/60">No tokens.</div>
-                      </template>
-                    </div>
-                  </div>
-                </div>
-              </template>
-
-              <template x-if="tier3Filtered.length === 0">
-                <div class="text-sm text-smoke/70">No Tier‑3 items (under current search filter).</div>
-              </template>
+            <div class="max-h-[420px] overflow-auto scroll-luxe">
+              <table class="w-full text-sm">
+                <thead class="sticky top-0 z-10 bg-black/25 backdrop-blur-md">
+                  <tr class="text-white/55">
+                    <th class="text-left font-medium px-4 py-3">Title</th>
+                    <th class="text-left font-medium px-4 py-3">Category</th>
+                    <th class="text-left font-medium px-4 py-3">Priority</th>
+                    <th class="text-left font-medium px-4 py-3">Owner</th>
+                    <th class="text-left font-medium px-4 py-3">Status</th>
+                    <th class="text-left font-medium px-4 py-3">Updated</th>
+                    <th class="text-right font-medium px-4 py-3 w-[90px]">—</th>
+                  </tr>
+                </thead>
+                <tbody id="entryRows" class="divide-y divide-white/10"></tbody>
+              </table>
             </div>
-          </section>
-
-          <section class="glass rounded-2xl p-5" x-show="showDismissed" x-transition.opacity.duration.200ms>
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">Dismissed</div>
-                <div class="mt-1 text-lg font-semibold">Archive (recoverable)</div>
-              </div>
-              <button class="btn magnetic rounded-xl px-4 py-2 text-xs"
-                      @click="restoreAll()">
-                Restore all
-              </button>
-            </div>
-
-            <div class="mt-4 hairline opacity-60"></div>
-
-            <div class="mt-5 grid grid-cols-1 gap-3">
-              <template x-for="t in dismissedFiltered" :key="t.id">
-                <div class="glass rounded-2xl p-4 border border-white/10 opacity-85">
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                      <div class="text-xs text-smoke/70 mono">SVI <span x-text="t.Severity_Index"></span>/10</div>
-                      <div class="mt-1 text-sm font-semibold truncate" x-text="t.Client_Name"></div>
-                      <div class="mt-1 text-xs text-smoke/80 line-clamp-2" x-text="t.Action_Required"></div>
-                    </div>
-                    <button class="btn magnetic rounded-xl px-3 py-2 text-xs"
-                            @click="restoreTicket(t)">
-                      Restore
-                    </button>
-                  </div>
-                </div>
-              </template>
-
-              <template x-if="dismissedFiltered.length === 0">
-                <div class="text-sm text-smoke/70">Nothing dismissed.</div>
-              </template>
-            </div>
-          </section>
-        </aside>
+          </div>
+        </section>
       </div>
-    </main>
+    </section>
+  </main>
 
-    <!-- Toast -->
-    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
-         x-show="toastState.show"
-         x-transition.opacity.duration.160ms>
-      <div class="toast rounded-2xl px-4 py-3 text-sm">
-        <span class="text-smoke/85" x-text="toastState.msg"></span>
-      </div>
+  <!-- Sisyphus Easter Egg Stage -->
+  <div id="sisyphusStage" aria-hidden="true">
+    <div id="sisyphusHill"></div>
+    <img id="sisyphusFigure" alt="Sisyphus" />
+    <div id="sisyphusRock"></div>
+    <div id="sisyphusPlaque">
+      <div class="title">OPEN TICKETS</div>
+      <div class="count" id="sisyCount">—</div>
+      <div class="list" id="sisyList"></div>
     </div>
-
-    <!-- Zero Inbox Reward Overlay -->
-    <div class="fixed inset-0 z-[60] flex items-center justify-center px-6"
-         x-show="reward.show"
-         x-transition.opacity.duration.240ms
-         style="display:none"
-         aria-modal="true" role="dialog">
-      <div class="absolute inset-0"
-           style="background: radial-gradient(1200px 800px at 50% 35%, rgba(183,134,107,0.18), transparent 60%),
-                          rgba(0,0,0,0.72); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);">
-      </div>
-
-      <div class="relative glass rounded-3xl p-6 md:p-8 max-w-xl w-full border border-white/12 overflow-hidden">
-        <div class="absolute -inset-20 pointer-events-none opacity-60"
-             style="background: radial-gradient(700px 260px at 20% 10%, rgba(199,208,222,0.16), transparent 55%),
-                            radial-gradient(700px 260px at 80% 20%, rgba(183,134,107,0.20), transparent 58%),
-                            radial-gradient(900px 400px at 50% 120%, rgba(176,18,45,0.12), transparent 60%);">
-        </div>
-
-        <div class="relative">
-          <div class="text-xs uppercase tracking-[0.28em] text-smoke/80">Zero Inbox</div>
-          <div class="mt-2 text-2xl font-semibold">Mechanism Complete.</div>
-          <div class="mt-2 text-sm text-smoke/85">
-            Das Uhrwerk greift – weil Disziplin, nicht Chaos, hier den Takt vorgibt.
-          </div>
-
-          <div class="mt-6 flex items-center justify-center">
-            <!-- Simple watchwork SVG (inline, no external assets) -->
-            <svg id="watchwork" viewBox="0 0 420 220" class="w-full max-w-md">
-              <defs>
-                <radialGradient id="goldGlow" cx="50%" cy="40%" r="65%">
-                  <stop offset="0%" stop-color="rgba(183,134,107,0.85)" />
-                  <stop offset="55%" stop-color="rgba(183,134,107,0.20)" />
-                  <stop offset="100%" stop-color="rgba(183,134,107,0.00)" />
-                </radialGradient>
-                <linearGradient id="steel" x1="0" x2="1">
-                  <stop offset="0%" stop-color="rgba(199,208,222,0.18)" />
-                  <stop offset="45%" stop-color="rgba(199,208,222,0.65)" />
-                  <stop offset="100%" stop-color="rgba(199,208,222,0.18)" />
-                </linearGradient>
-              </defs>
-
-              <rect x="0" y="0" width="420" height="220" fill="rgba(0,0,0,0)" />
-              <circle cx="210" cy="110" r="96" fill="url(#goldGlow)" opacity="0.65"></circle>
-
-              <!-- gears -->
-              <g id="gearA" transform="translate(150 110)">
-                <circle r="44" fill="none" stroke="url(#steel)" stroke-width="3"></circle>
-                <circle r="18" fill="none" stroke="rgba(199,208,222,0.55)" stroke-width="2"></circle>
-                <g stroke="rgba(199,208,222,0.55)" stroke-width="3">
-                  <line x1="0" y1="-44" x2="0" y2="-56"></line>
-                  <line x1="38" y1="-22" x2="48" y2="-28"></line>
-                  <line x1="38" y1="22" x2="48" y2="28"></line>
-                  <line x1="0" y1="44" x2="0" y2="56"></line>
-                  <line x1="-38" y1="22" x2="-48" y2="28"></line>
-                  <line x1="-38" y1="-22" x2="-48" y2="-28"></line>
-                </g>
-              </g>
-
-              <g id="gearB" transform="translate(250 110)">
-                <circle r="34" fill="none" stroke="url(#steel)" stroke-width="3"></circle>
-                <circle r="14" fill="none" stroke="rgba(199,208,222,0.55)" stroke-width="2"></circle>
-                <g stroke="rgba(183,134,107,0.65)" stroke-width="3">
-                  <line x1="0" y1="-34" x2="0" y2="-45"></line>
-                  <line x1="30" y1="-16" x2="40" y2="-22"></line>
-                  <line x1="30" y1="16" x2="40" y2="22"></line>
-                  <line x1="0" y1="34" x2="0" y2="45"></line>
-                  <line x1="-30" y1="16" x2="-40" y2="22"></line>
-                  <line x1="-30" y1="-16" x2="-40" y2="-22"></line>
-                </g>
-              </g>
-
-              <!-- bridge -->
-              <path id="bridge" d="M105 62 C170 20, 250 20, 315 62 L305 86 C250 56, 170 56, 115 86 Z"
-                    fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)"></path>
-            </svg>
-          </div>
-
-          <div class="mt-6 flex items-center justify-end gap-3">
-            <button class="btn magnetic rounded-xl px-4 py-3 text-sm"
-                    @click="closeReward()">
-              Back to cockpit
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 
-  <script>
-    function dashboard() {
+  <!-- Hidden file input for Sisyphus image -->
+  <input id="fileSisy" type="file" accept="image/*" class="hidden" />
+
+  <!-- Config Modal -->
+  <div id="modal" class="fixed inset-0 z-30 hidden">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-6">
+      <div class="glass shadow-luxe w-full max-w-xl rounded-3xl p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="text-xs tracking-[.24em] uppercase text-white/55">Persistence</div>
+            <h2 class="text-xl font-semibold mt-1">JSON-Bin Configuration</h2>
+            <p class="text-sm text-white/55 mt-1">
+              Placeholder ist erlaubt. Ohne Key wird lokal simuliert (LocalStorage + Console).
+            </p>
+          </div>
+          <button id="btnCloseModal" class="btn">Close</button>
+        </div>
+
+        <div class="mt-4 grid gap-3">
+          <label class="grid gap-2">
+            <span class="text-xs text-white/55 tracking-[.20em] uppercase">BIN URL (v3)</span>
+            <input id="cfgBinUrl" class="field w-full" placeholder="https://api.jsonbin.io/v3/b/YOUR_BIN_ID" />
+          </label>
+
+          <label class="grid gap-2">
+            <span class="text-xs text-white/55 tracking-[.20em] uppercase">X-Master-Key (optional)</span>
+            <input id="cfgMasterKey" class="field w-full" placeholder="YOUR_MASTER_KEY" />
+          </label>
+
+          <label class="grid gap-2">
+            <span class="text-xs text-white/55 tracking-[.20em] uppercase">X-Access-Key (optional)</span>
+            <input id="cfgAccessKey" class="field w-full" placeholder="YOUR_ACCESS_KEY" />
+          </label>
+
+          <div class="flex flex-wrap gap-2 mt-2">
+            <button id="btnApplyCfg" class="btn btn-primary">Apply</button>
+            <button id="btnClearCfg" class="btn">Reset</button>
+          </div>
+
+          <div class="text-xs text-white/45 mt-2">
+            Hinweis: JSON-Bin v3 liefert typischerweise <code class="text-white/60">{"record": ...}</code>.
+            Diese App schreibt/liest direkt den Record.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Add (Cmd/Ctrl+K) -->
+  <div id="quick" class="fixed inset-0 z-30 hidden">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-6">
+      <div class="glass shadow-luxe w-full max-w-2xl rounded-3xl p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="text-xs tracking-[.24em] uppercase text-white/55">Quick Add</div>
+            <h2 class="text-xl font-semibold mt-1">New Entry</h2>
+          </div>
+          <button id="btnCloseQuick" class="btn">Close</button>
+        </div>
+
+        <div class="mt-4 grid gap-3">
+          <label class="grid gap-2">
+            <span class="text-xs text-white/55 tracking-[.20em] uppercase">Title</span>
+            <input id="qaTitle" class="field w-full" placeholder="z.B. Auszahlung prüfen / DHL Abholung / Rückruf …" />
+          </label>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <label class="grid gap-2">
+              <span class="text-xs text-white/55 tracking-[.20em] uppercase">Category</span>
+              <select id="qaCategory" class="field w-full">
+                <option>Payment</option>
+                <option>Logistics</option>
+                <option>Customer</option>
+                <option>Sales</option>
+                <option>Ops</option>
+                <option>Agent</option>
+              </select>
+            </label>
+
+            <label class="grid gap-2">
+              <span class="text-xs text-white/55 tracking-[.20em] uppercase">Priority</span>
+              <select id="qaPriority" class="field w-full">
+                <option>P1</option>
+                <option selected>P2</option>
+                <option>P3</option>
+              </select>
+            </label>
+
+            <label class="grid gap-2">
+              <span class="text-xs text-white/55 tracking-[.20em] uppercase">Owner</span>
+              <input id="qaOwner" class="field w-full" placeholder="Initials / Team" />
+            </label>
+          </div>
+
+          <div class="flex gap-2 mt-2">
+            <button id="btnCreateQuick" class="btn btn-primary">Create</button>
+            <button id="btnCreateQuickAndSave" class="btn btn-gold">Create + Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+    import { RoomEnvironment } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/environments/RoomEnvironment.js';
+
+    /**
+     * AntiGravity — single-file, "vibecode" Command Center
+     * - Three.js glass scene as background atmosphere
+     * - Tailwind glass panel overlay
+     * - GSAP micro-interactions
+     * - JSON-Bin persistence (GET/PUT), fallback local simulation
+     */
+
+    // -------------------------
+    // Persistence Configuration
+    // -------------------------
+    const STORAGE_KEY = 'antigravity_state_v1';
+    const CFG_KEY = 'antigravity_cfg_v1';
+
+    const DEFAULT_CFG = {
+      BIN_URL: 'https://api.jsonbin.io/v3/b/YOUR_BIN_ID',
+      X_MASTER_KEY: 'YOUR_MASTER_KEY',
+      X_ACCESS_KEY: 'YOUR_ACCESS_KEY'
+    };
+
+    const cfg = loadCfg();
+
+    function loadCfg(){
+      try {
+        const raw = localStorage.getItem(CFG_KEY);
+        return raw ? { ...DEFAULT_CFG, ...JSON.parse(raw) } : { ...DEFAULT_CFG };
+      } catch {
+        return { ...DEFAULT_CFG };
+      }
+    }
+
+    function saveCfg(next){
+      localStorage.setItem(CFG_KEY, JSON.stringify(next));
+    }
+
+    function hasRealCloudConfig(){
+      const u = (cfg.BIN_URL || '').trim();
+      const hasBin = u.startsWith('https://api.jsonbin.io/v3/b/') && !u.includes('YOUR_BIN_ID');
+      const hasKey = !String(cfg.X_MASTER_KEY || '').includes('YOUR_MASTER_KEY') && String(cfg.X_MASTER_KEY || '').trim().length > 10;
+      const hasAccess = !String(cfg.X_ACCESS_KEY || '').includes('YOUR_ACCESS_KEY') && String(cfg.X_ACCESS_KEY || '').trim().length > 10;
+      return { hasBin, hasKey, hasAccess, isReady: hasBin && (hasKey || hasAccess) };
+    }
+
+    async function jsonBinFetch({ pathSuffix = '', method = 'GET', body = null }){
+      const url = (cfg.BIN_URL || '').trim() + pathSuffix;
+      const headers = { 'Content-Type': 'application/json' };
+
+      if (cfg.X_MASTER_KEY && !cfg.X_MASTER_KEY.includes('YOUR_MASTER_KEY')) headers['X-Master-Key'] = cfg.X_MASTER_KEY.trim();
+      if (cfg.X_ACCESS_KEY && !cfg.X_ACCESS_KEY.includes('YOUR_ACCESS_KEY')) headers['X-Access-Key'] = cfg.X_ACCESS_KEY.trim();
+
+      const init = { method, headers };
+      if (body !== null) init.body = JSON.stringify(body);
+
+      const res = await fetch(url, init);
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`JSON-Bin ${method} failed (${res.status}): ${text.slice(0, 220)}`);
+      }
+      return res.json();
+    }
+
+    async function loadData(){
+      const cloud = hasRealCloudConfig();
+      setStatus(`Loading… (${cloud.isReady ? 'cloud' : 'local'})`);
+
+      if (!cloud.isReady) {
+        // local simulation
+        const local = loadLocalState();
+        setStatus('Loaded (local simulation).');
+        return local;
+      }
+
+      try {
+        // v3: GET /latest
+        const payload = await jsonBinFetch({ pathSuffix: '/latest', method: 'GET' });
+        const record = payload?.record;
+        if (!record) throw new Error('No record in JSON-Bin response.');
+        setStatus('Loaded (cloud).');
+        return record;
+      } catch (err) {
+        console.warn('[AntiGravity] loadData() cloud failed; falling back:', err);
+        const local = loadLocalState();
+        setStatus('Cloud load failed → local fallback.');
+        return local;
+      }
+    }
+
+    async function saveData(state){
+      const cloud = hasRealCloudConfig();
+      setStatus(`Saving… (${cloud.isReady ? 'cloud' : 'local'})`);
+
+      // always keep local shadow copy (fast, resilient)
+      saveLocalState(state);
+
+      if (!cloud.isReady) {
+        console.log('[AntiGravity] Simulated PUT →', cfg.BIN_URL, state);
+        setStatus('Saved (local simulation).');
+        return { simulated: true };
+      }
+
+      try {
+        // v3: PUT /b/:id  (write record)
+        const payload = await jsonBinFetch({ method: 'PUT', body: state });
+        setStatus('Saved (cloud).');
+        return payload;
+      } catch (err) {
+        console.warn('[AntiGravity] saveData() cloud failed; local copy preserved:', err);
+        setStatus('Cloud save failed → local preserved.');
+        return { error: String(err) };
+      }
+    }
+
+    function loadLocalState(){
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaultState();
+        return JSON.parse(raw);
+      } catch {
+        return defaultState();
+      }
+    }
+
+    function saveLocalState(state){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    // -------------------------
+    // State Model
+    // -------------------------
+    function uid(){
+      return 'e_' + Math.random().toString(16).slice(2) + '_' + Date.now().toString(16);
+    }
+    function nowIso(){
+      return new Date().toISOString();
+    }
+
+    const DEFAULT_SISYPHUS_DATA_URL = (() => {
+      // Minimal, stylized Sisyphus silhouette (inline SVG -> data URL)
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1">
+              <stop offset="0" stop-color="rgba(255,255,255,.92)"/>
+              <stop offset="1" stop-color="rgba(201,168,106,.92)"/>
+            </linearGradient>
+            <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="rgba(0,0,0,.55)"/>
+            </filter>
+          </defs>
+          <g filter="url(#s)" opacity=".95" fill="url(#g)">
+            <!-- hill hint -->
+            <path d="M10 140 C 70 120, 140 110, 230 70 L230 160 L10 160 Z" opacity=".18"/>
+            <!-- body -->
+            <circle cx="82" cy="74" r="12"/>
+            <path d="M78 88 C 66 102, 58 120, 52 138 C 50 144, 60 148, 64 142 C 74 128, 84 112, 96 104 C 112 93, 124 92, 138 90 C 144 89, 144 80, 138 80 C 120 80, 104 82, 92 92 Z" />
+            <!-- arm pushing -->
+            <path d="M92 98 C 104 90, 118 84, 134 78 C 140 76, 144 84, 138 88 C 124 96, 110 104, 98 112 C 94 114, 88 102, 92 98 Z"/>
+            <!-- rock -->
+            <circle cx="170" cy="78" r="20" opacity=".90"/>
+          </g>
+        </svg>
+      `.trim();
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    })();
+
+    function defaultState(){
       return {
-        // state
-        tickets: [],
-        expanded: {},
-        query: "",
-        showDismissed: false,
-
-        toastState: { show: false, msg: "" },
-        reward: { show: false, fired: false },
-
-        reducedMotion: false,
-
-        init() {
-          this.reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-          this.tickets = (window.ESCALATIONS || []).map((t) => this.normalizeTicket(t));
-
-          this.loadPersistedDismissals();
-          this.recomputeExpandedKeys();
-
-          this.$nextTick(() => {
-            this.attachMagnetics();
-            this.applyCriticalPulse();
-            this.maybeZeroInbox();
-          });
-
-          window.addEventListener("resize", () => this.attachMagnetics());
+        meta: {
+          version: 1,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          lastSyncAt: null,
+          mode: 'AntiGravity'
         },
-
-        // ---------- derived ----------
-        get activeTickets() {
-          return this.tickets.filter(t => !t.dismissed);
+        counters: {
+          completedP3: 0
         },
-        get dismissedTickets() {
-          return this.tickets.filter(t => t.dismissed);
+        assets: {
+          sisyphusDataUrl: DEFAULT_SISYPHUS_DATA_URL
         },
-        get counts() {
-          const a = this.filtered(this.activeTickets);
-          const d = this.filtered(this.dismissedTickets);
-          return {
-            t1: a.filter(t => this.tierOf(t.Severity_Index) === 1).length,
-            t2: a.filter(t => this.tierOf(t.Severity_Index) === 2).length,
-            t3: a.filter(t => this.tierOf(t.Severity_Index) === 3).length,
-            dismissed: d.length
-          };
-        },
-        get tier1Filtered() {
-          return this.sorted(this.filtered(this.activeTickets).filter(t => this.tierOf(t.Severity_Index) === 1));
-        },
-        get tier2Filtered() {
-          return this.sorted(this.filtered(this.activeTickets).filter(t => this.tierOf(t.Severity_Index) === 2));
-        },
-        get tier3Filtered() {
-          return this.sorted(this.filtered(this.activeTickets).filter(t => this.tierOf(t.Severity_Index) === 3));
-        },
-        get dismissedFiltered() {
-          return this.sorted(this.filtered(this.dismissedTickets));
-        },
-
-        // ---------- core transforms ----------
-        normalizeTicket(t) {
-          const safe = {
-            Severity_Index: Number(t.Severity_Index ?? 1),
-            Client_Name: String(t.Client_Name ?? "Unnamed"),
-            Context_Briefing: String(t.Context_Briefing ?? ""),
-            Action_Required: String(t.Action_Required ?? ""),
-            Deep_Link: String(t.Deep_Link ?? ""),
-            Timestamp: String(t.Timestamp ?? new Date().toISOString())
-          };
-          safe.Severity_Index = Math.max(1, Math.min(10, safe.Severity_Index));
-
-          const idSeed = `${safe.Severity_Index}|${safe.Client_Name}|${safe.Action_Required}|${safe.Deep_Link}|${safe.Timestamp}`;
-          return {
-            ...safe,
-            id: this.hash(idSeed),
-            dismissed: false
-          };
-        },
-
-        tierOf(sev) {
-          if (sev >= 9) return 1;
-          if (sev >= 6) return 2;
-          return 3;
-        },
-
-        sorted(list) {
-          return [...list].sort((a, b) => {
-            if (b.Severity_Index !== a.Severity_Index) return b.Severity_Index - a.Severity_Index;
-            return (new Date(b.Timestamp)).getTime() - (new Date(a.Timestamp)).getTime();
-          });
-        },
-
-        filtered(list) {
-          const q = (this.query || "").trim().toLowerCase();
-          if (!q) return list;
-          return list.filter(t => {
-            const blob = `${t.Client_Name}\n${t.Context_Briefing}\n${t.Action_Required}\n${t.Deep_Link}`.toLowerCase();
-            return blob.includes(q);
-          });
-        },
-
-        recomputeExpandedKeys() {
-          for (const t of this.tickets) {
-            if (this.expanded[t.id] === undefined) this.expanded[t.id] = false;
+        entries: [
+          {
+            id: uid(),
+            title: 'Auszahlung prüfen: Kunde wartet auf Rückmeldung',
+            category: 'Payment',
+            priority: 'P2',
+            owner: 'Ops',
+            status: 'Open',
+            updatedAt: nowIso()
+          },
+          {
+            id: uid(),
+            title: 'DHL Abholung / Logistik-Update: Uhr unterwegs',
+            category: 'Logistics',
+            priority: 'P3',
+            owner: 'Logistics',
+            status: 'Open',
+            updatedAt: nowIso()
+          },
+          {
+            id: uid(),
+            title: 'Kommission/Preis: Klärung mit Sales erforderlich',
+            category: 'Sales',
+            priority: 'P1',
+            owner: 'Sales',
+            status: 'Open',
+            updatedAt: nowIso()
           }
-        },
-
-        // ---------- UI actions ----------
-        toggleExpand(id, evt) {
-          this.expanded[id] = !this.expanded[id];
-          const card = evt.currentTarget.closest("[data-card]");
-          if (!card) return;
-          const details = card.querySelector("[data-details]");
-          if (!details) return;
-
-          if (this.reducedMotion) {
-            details.style.opacity = this.expanded[id] ? "1" : "0";
-            details.style.height = this.expanded[id] ? "auto" : "0";
-            return;
-          }
-
-          if (this.expanded[id]) {
-            // open
-            details.style.display = "block";
-            gsap.killTweensOf(details);
-            gsap.set(details, { height: 0, opacity: 0 });
-            const targetH = details.scrollHeight;
-            gsap.to(details, {
-              height: targetH,
-              opacity: 1,
-              duration: 0.45,
-              ease: "power3.out",
-              onComplete: () => { details.style.height = "auto"; }
-            });
-          } else {
-            // close
-            gsap.killTweensOf(details);
-            const currentH = details.scrollHeight;
-            gsap.set(details, { height: currentH });
-            gsap.to(details, {
-              height: 0,
-              opacity: 0,
-              duration: 0.35,
-              ease: "power2.inOut"
-            });
-          }
-        },
-
-        dismissTicket(t, evt) {
-          const card = evt.currentTarget.closest("[data-card]");
-          t.dismissed = true;
-          this.persistDismissals();
-
-          // collapse if expanded
-          this.expanded[t.id] = false;
-
-          if (this.reducedMotion || !card) {
-            this.toast("Dismissed.");
-            this.$nextTick(() => this.maybeZeroInbox());
-            return;
-          }
-
-          // cinematic deconstruction: particle dispersion + lift/fade
-          this.spawnParticles(card, this.tierOf(t.Severity_Index));
-
-          gsap.to(card, {
-            y: -18,
-            opacity: 0,
-            filter: "blur(2px)",
-            duration: 0.55,
-            ease: "power3.inOut",
-            onComplete: () => {
-              // keep it in DOM via Alpine, but visually reset for archive rendering
-              gsap.set(card, { clearProps: "all" });
-              this.toast("Dismissed (archived).");
-              this.$nextTick(() => {
-                this.applyCriticalPulse();
-                this.maybeZeroInbox();
-              });
-            }
-          });
-        },
-
-        restoreTicket(t) {
-          t.dismissed = false;
-          this.persistDismissals();
-          this.toast("Restored.");
-          this.$nextTick(() => {
-            this.applyCriticalPulse();
-          });
-        },
-
-        restoreAll() {
-          for (const t of this.tickets) t.dismissed = false;
-          this.persistDismissals();
-          this.toast("All restored.");
-          this.$nextTick(() => this.applyCriticalPulse());
-        },
-
-        scrollToSection(id) {
-          const el = document.getElementById(id);
-          if (!el) return;
-          el.scrollIntoView({ behavior: this.reducedMotion ? "auto" : "smooth", block: "start" });
-        },
-
-        // ---------- token extraction + copy ----------
-        extractTokens(t) {
-          const text = `${t.Context_Briefing}\n${t.Action_Required}`.toUpperCase();
-
-          const tokens = [];
-          const seen = new Set();
-
-          // IBAN (simplified but practical)
-          const ibanRegex = /\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b/g;
-          for (const m of (text.match(ibanRegex) || [])) {
-            const v = m.replace(/\s+/g, "");
-            if (!seen.has("IBAN:" + v)) {
-              seen.add("IBAN:" + v);
-              tokens.push({ type: "IBAN", value: v });
-            }
-          }
-
-          // phone (broad EU-friendly heuristic)
-          const phoneRegex = /(\+?\d[\d\s().-]{7,}\d)/g;
-          for (const m of (t.Context_Briefing.match(phoneRegex) || [])) {
-            const v = m.replace(/\s+/g, " ").trim();
-            if (v.length >= 9 && v.length <= 22 && !seen.has("TEL:" + v)) {
-              seen.add("TEL:" + v);
-              tokens.push({ type: "TEL", value: v });
-            }
-          }
-
-          // tracking (heuristic: long alnum with digits)
-          const trackingRegex = /\b[A-Z0-9]{8,22}\b/g;
-          for (const m of (text.match(trackingRegex) || [])) {
-            // exclude IBAN-like
-            if (/^[A-Z]{2}\d{2}/.test(m)) continue;
-            // require digits to reduce false positives
-            if (!/\d/.test(m)) continue;
-            if (!seen.has("TRACK:" + m)) {
-              seen.add("TRACK:" + m);
-              tokens.push({ type: "TRACK", value: m });
-            }
-          }
-
-          return tokens.slice(0, 10);
-        },
-
-        async copy(value) {
-          const v = String(value || "");
-          if (!v) return;
-
-          try {
-            if (navigator.clipboard && window.isSecureContext) {
-              await navigator.clipboard.writeText(v);
-            } else {
-              // fallback
-              const ta = document.createElement("textarea");
-              ta.value = v;
-              ta.style.position = "fixed";
-              ta.style.left = "-9999px";
-              document.body.appendChild(ta);
-              ta.focus();
-              ta.select();
-              document.execCommand("copy");
-              document.body.removeChild(ta);
-            }
-            this.toast("Copied: " + v);
-          } catch (e) {
-            this.toast("Copy failed (browser permissions).");
-          }
-        },
-
-        toast(msg) {
-          this.toastState.msg = msg;
-          this.toastState.show = true;
-          clearTimeout(this._toastTimer);
-          this._toastTimer = setTimeout(() => (this.toastState.show = false), 1600);
-        },
-
-        // ---------- persistence ----------
-        persistDismissals() {
-          const dismissedIds = this.tickets.filter(t => t.dismissed).map(t => t.id);
-          localStorage.setItem("cockpit.dismissed", JSON.stringify(dismissedIds));
-        },
-
-        loadPersistedDismissals() {
-          try {
-            const raw = localStorage.getItem("cockpit.dismissed");
-            if (!raw) return;
-            const ids = new Set(JSON.parse(raw));
-            for (const t of this.tickets) t.dismissed = ids.has(t.id);
-          } catch (_) { /* ignore */ }
-        },
-
-        // ---------- aesthetics / motion ----------
-        applyCriticalPulse() {
-          if (this.reducedMotion) return;
-
-          // kill existing
-          gsap.killTweensOf("[data-critical-halo]");
-
-          // apply only to current tier1 cards
-          document.querySelectorAll("[data-card]").forEach(card => {
-            const id = card.getAttribute("data-id");
-            const t = this.tickets.find(x => x.id === id);
-            if (!t) return;
-
-            const halo = card.querySelector("[data-critical-halo]");
-            if (!halo) return;
-
-            if (!t.dismissed && this.tierOf(t.Severity_Index) === 1) {
-              gsap.set(halo, {
-                opacity: 0.55,
-                background: "radial-gradient(420px 220px at 50% 30%, rgba(209,30,58,0.22), transparent 62%)"
-              });
-              gsap.to(halo, {
-                opacity: 0.95,
-                duration: 1.15,
-                ease: "sine.inOut",
-                yoyo: true,
-                repeat: -1
-              });
-            } else {
-              gsap.set(halo, { opacity: 0 });
-            }
-          });
-        },
-
-        spawnParticles(card, tier) {
-          if (this.reducedMotion) return;
-
-          const rect = card.getBoundingClientRect();
-          const container = document.createElement("div");
-          container.style.position = "fixed";
-          container.style.left = rect.left + "px";
-          container.style.top = rect.top + "px";
-          container.style.width = rect.width + "px";
-          container.style.height = rect.height + "px";
-          container.style.pointerEvents = "none";
-          container.style.zIndex = "80";
-          document.body.appendChild(container);
-
-          const color = tier === 1 ? "rgba(209,30,58,0.95)" : (tier === 2 ? "rgba(183,134,107,0.9)" : "rgba(199,208,222,0.85)");
-
-          const n = 18;
-          for (let i = 0; i < n; i++) {
-            const p = document.createElement("div");
-            const s = 6 + Math.random() * 10;
-            p.style.position = "absolute";
-            p.style.left = (rect.width * (0.35 + Math.random() * 0.30)) + "px";
-            p.style.top = (rect.height * (0.25 + Math.random() * 0.50)) + "px";
-            p.style.width = s + "px";
-            p.style.height = s + "px";
-            p.style.borderRadius = (Math.random() > 0.55 ? "999px" : "6px");
-            p.style.background = `linear-gradient(180deg, ${color}, rgba(255,255,255,0.18))`;
-            p.style.boxShadow = "0 14px 40px rgba(0,0,0,0.55)";
-            p.style.opacity = "0.95";
-            container.appendChild(p);
-
-            gsap.to(p, {
-              x: (Math.random() - 0.5) * rect.width * 0.9,
-              y: -20 - Math.random() * 80,
-              rotation: (Math.random() - 0.5) * 220,
-              opacity: 0,
-              scale: 0.6 + Math.random() * 0.4,
-              duration: 0.65 + Math.random() * 0.25,
-              ease: "power3.out"
-            });
-          }
-
-          gsap.to(container, {
-            opacity: 0,
-            duration: 0.9,
-            ease: "power2.out",
-            onComplete: () => container.remove()
-          });
-        },
-
-        attachMagnetics() {
-          // magnetic buttons (subtle, expensive-feeling)
-          if (this.reducedMotion) return;
-
-          const els = document.querySelectorAll(".magnetic");
-          els.forEach(el => {
-            if (el._magnetAttached) return;
-            el._magnetAttached = true;
-
-            const strength = 10; // px
-            const xTo = gsap.quickTo(el, "x", { duration: 0.35, ease: "power3.out" });
-            const yTo = gsap.quickTo(el, "y", { duration: 0.35, ease: "power3.out" });
-
-            const onMove = (e) => {
-              const r = el.getBoundingClientRect();
-              const cx = r.left + r.width / 2;
-              const cy = r.top + r.height / 2;
-              const dx = (e.clientX - cx) / (r.width / 2);
-              const dy = (e.clientY - cy) / (r.height / 2);
-              xTo(Math.max(-1, Math.min(1, dx)) * strength);
-              yTo(Math.max(-1, Math.min(1, dy)) * strength);
-            };
-
-            const onLeave = () => { xTo(0); yTo(0); };
-
-            el.addEventListener("mousemove", onMove);
-            el.addEventListener("mouseleave", onLeave);
-          });
-        },
-
-        maybeZeroInbox() {
-          if (this.reward.fired) return;
-
-          const activeCount = this.activeTickets.length;
-          if (activeCount === 0) {
-            this.reward.fired = true;
-            this.openReward();
-          }
-        },
-
-        openReward() {
-          this.reward.show = true;
-          this.$nextTick(() => this.animateWatchwork());
-        },
-
-        closeReward() {
-          this.reward.show = false;
-        },
-
-        animateWatchwork() {
-          if (this.reducedMotion) return;
-          const a = document.getElementById("gearA");
-          const b = document.getElementById("gearB");
-          const bridge = document.getElementById("bridge");
-          if (!a || !b || !bridge) return;
-
-          gsap.set([a, b, bridge], { opacity: 0, y: 10, transformOrigin: "50% 50%" });
-
-          const tl = gsap.timeline();
-          tl.to([a, b, bridge], { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", stagger: 0.08 })
-            .to(a, { rotation: 360, duration: 3.2, ease: "none", repeat: -1 }, ">")
-            .to(b, { rotation: -520, duration: 3.2, ease: "none", repeat: -1 }, "<");
-        },
-
-        // ---------- time formatting ----------
-        formatExact(iso) {
-          const d = new Date(iso);
-          if (isNaN(d.getTime())) return iso;
-          return d.toLocaleString(undefined, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-        },
-
-        formatRelative(iso) {
-          const d = new Date(iso);
-          if (isNaN(d.getTime())) return iso;
-          const diffMs = Date.now() - d.getTime();
-          const m = Math.round(diffMs / 60000);
-          if (m < 1) return "just now";
-          if (m < 60) return `${m}m ago`;
-          const h = Math.round(m / 60);
-          if (h < 24) return `${h}h ago`;
-          const days = Math.round(h / 24);
-          return `${days}d ago`;
-        },
-
-        // ---------- util ----------
-        hash(str) {
-          // FNV-1a-ish (small, stable, good enough for local IDs)
-          let h = 2166136261;
-          for (let i = 0; i < str.length; i++) {
-            h ^= str.charCodeAt(i);
-            h = Math.imul(h, 16777619);
-          }
-          return ("id_" + (h >>> 0).toString(16));
-        }
+        ]
       };
     }
+
+    let state = loadLocalState();
+
+    // -------------------------
+    // DOM Elements
+    // -------------------------
+    const el = {
+      panel: document.getElementById('panel'),
+      rows: document.getElementById('entryRows'),
+      statusLine: document.getElementById('statusLine'),
+
+      connDot: document.getElementById('connDot'),
+      connText: document.getElementById('connText'),
+
+      kpiOpen: document.getElementById('kpiOpen'),
+      kpiOpenHint: document.getElementById('kpiOpenHint'),
+      kpiP1: document.getElementById('kpiP1'),
+      kpiP2: document.getElementById('kpiP2'),
+      kpiP3: document.getElementById('kpiP3'),
+      kpiLastSync: document.getElementById('kpiLastSync'),
+      kpiMode: document.getElementById('kpiMode'),
+
+      btnAdd: document.getElementById('btnAdd'),
+      btnSeed: document.getElementById('btnSeed'),
+      btnSync: document.getElementById('btnSync'),
+      btnSave: document.getElementById('btnSave'),
+      btnConfig: document.getElementById('btnConfig'),
+      btnUploadSisy: document.getElementById('btnUploadSisy'),
+
+      modal: document.getElementById('modal'),
+      btnCloseModal: document.getElementById('btnCloseModal'),
+      cfgBinUrl: document.getElementById('cfgBinUrl'),
+      cfgMasterKey: document.getElementById('cfgMasterKey'),
+      cfgAccessKey: document.getElementById('cfgAccessKey'),
+      btnApplyCfg: document.getElementById('btnApplyCfg'),
+      btnClearCfg: document.getElementById('btnClearCfg'),
+
+      quick: document.getElementById('quick'),
+      btnCloseQuick: document.getElementById('btnCloseQuick'),
+      qaTitle: document.getElementById('qaTitle'),
+      qaCategory: document.getElementById('qaCategory'),
+      qaPriority: document.getElementById('qaPriority'),
+      qaOwner: document.getElementById('qaOwner'),
+      btnCreateQuick: document.getElementById('btnCreateQuick'),
+      btnCreateQuickAndSave: document.getElementById('btnCreateQuickAndSave'),
+
+      // Sisyphus
+      sisyStage: document.getElementById('sisyphusStage'),
+      sisyImg: document.getElementById('sisyphusFigure'),
+      sisyRock: document.getElementById('sisyphusRock'),
+      sisyPlaque: document.getElementById('sisyphusPlaque'),
+      sisyCount: document.getElementById('sisyCount'),
+      sisyList: document.getElementById('sisyList'),
+
+      fileSisy: document.getElementById('fileSisy')
+    };
+
+    // -------------------------
+    // Rendering
+    // -------------------------
+    function fmtTime(iso){
+      try {
+        const d = new Date(iso);
+        return d.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
+      } catch {
+        return '—';
+      }
+    }
+
+    function setStatus(text){
+      el.statusLine.textContent = text;
+    }
+
+    function updateConnBadge(){
+      const cloud = hasRealCloudConfig();
+      if (cloud.isReady) {
+        el.connDot.className = 'dot ok';
+        el.connText.textContent = 'Cloud (JSON-Bin)';
+      } else if (cloud.hasBin) {
+        el.connDot.className = 'dot warn';
+        el.connText.textContent = 'Bin set, key missing (simulation)';
+      } else {
+        el.connDot.className = 'dot warn';
+        el.connText.textContent = 'Local simulation';
+      }
+    }
+
+    function computeKPIs(){
+      const entries = state.entries || [];
+      const open = entries.filter(e => e.status !== 'Done').length;
+      const p1 = entries.filter(e => e.priority === 'P1' && e.status !== 'Done').length;
+      const p2 = entries.filter(e => e.priority === 'P2' && e.status !== 'Done').length;
+      const p3 = entries.filter(e => e.priority === 'P3' && e.status !== 'Done').length;
+      return { open, p1, p2, p3 };
+    }
+
+    function renderKPIs(){
+      const { open, p1, p2, p3 } = computeKPIs();
+      el.kpiOpen.textContent = String(open);
+      el.kpiP1.textContent = String(p1);
+      el.kpiP2.textContent = String(p2);
+      el.kpiP3.textContent = String(p3);
+
+      const last = state.meta?.lastSyncAt ? fmtTime(state.meta.lastSyncAt) : '—';
+      el.kpiLastSync.textContent = last;
+      el.kpiMode.textContent = hasRealCloudConfig().isReady ? 'Cloud' : 'Local';
+
+      const tension = (p1 * 3 + p2 * 2 + p3 * 1);
+      const hint = tension === 0
+        ? 'Calm surface. No submerged fires.'
+        : tension >= 8
+          ? 'High torque. Priorities are grinding.'
+          : 'Moderate load. Keep the cadence.';
+      el.kpiOpenHint.textContent = hint;
+    }
+
+    function p3OrdinalMap(){
+      // Map: entryId -> ordinal among P3 entries by updatedAt (stable-ish)
+      const p3 = [...state.entries]
+        .filter(e => e.priority === 'P3')
+        .sort((a,b) => String(a.updatedAt).localeCompare(String(b.updatedAt)));
+      const map = new Map();
+      p3.forEach((e, i) => map.set(e.id, i + 1));
+      return map;
+    }
+
+    function renderRows(){
+      const entries = state.entries || [];
+      const p3Map = p3OrdinalMap();
+
+      el.rows.innerHTML = entries
+        .slice()
+        .sort((a,b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+        .map(e => {
+          const ord = p3Map.get(e.id) || 0;
+          const hasEngraving = e.priority === 'P3' && ord % 3 === 0;
+
+          const prColor =
+            e.priority === 'P1' ? 'text-red-200' :
+            e.priority === 'P2' ? 'text-amber-200' :
+            'text-emerald-200';
+
+          const stChip =
+            e.status === 'Done'
+              ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-100'
+              : e.status === 'Blocked'
+                ? 'bg-red-500/15 border-red-400/20 text-red-100'
+                : 'bg-white/5 border-white/10 text-white/75';
+
+          return `
+            <tr data-id="${e.id}" class="hover:bg-white/3 transition-colors">
+              <td class="px-4 py-3 align-top">
+                <input class="field w-full" data-field="title" value="${escapeHtml(e.title)}" />
+              </td>
+              <td class="px-4 py-3 align-top">
+                <select class="field w-full" data-field="category">
+                  ${['Payment','Logistics','Customer','Sales','Ops','Agent'].map(c => `
+                    <option ${c===e.category?'selected':''}>${c}</option>
+                  `).join('')}
+                </select>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <select class="field w-full ${prColor}" data-field="priority">
+                  ${['P1','P2','P3'].map(p => `<option ${p===e.priority?'selected':''}>${p}</option>`).join('')}
+                </select>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <input class="field w-full" data-field="owner" value="${escapeHtml(e.owner || '')}" placeholder="Team" />
+              </td>
+              <td class="px-4 py-3 align-top">
+                <select class="field w-full border ${stChip}" data-field="status">
+                  ${['Open','In Progress','Blocked','Done'].map(s => `<option ${s===e.status?'selected':''}>${s}</option>`).join('')}
+                </select>
+              </td>
+              <td class="px-4 py-3 align-top text-white/55 whitespace-nowrap">${fmtTime(e.updatedAt)}</td>
+              <td class="px-4 py-3 align-top text-right">
+                <div class="flex items-center justify-end gap-2">
+                  ${hasEngraving ? `<span class="engraving" title="engraved cadence">∴</span>` : ''}
+                  <button class="btn px-3 py-2 text-xs" data-action="delete">Delete</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+    }
+
+    function escapeHtml(str){
+      return String(str ?? '')
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
+    }
+
+    function renderAll(){
+      updateConnBadge();
+      renderKPIs();
+      renderRows();
+      el.sisyImg.src = state.assets?.sisyphusDataUrl || DEFAULT_SISYPHUS_DATA_URL;
+    }
+
+    // -------------------------
+    // Editing / Events
+    // -------------------------
+    function touchEntry(id, patch){
+      const idx = state.entries.findIndex(e => e.id === id);
+      if (idx < 0) return;
+
+      const prev = state.entries[idx];
+      const next = { ...prev, ...patch, updatedAt: nowIso() };
+      state.entries[idx] = next;
+      state.meta.updatedAt = nowIso();
+    }
+
+    function addEntry(partial = {}){
+      const entry = {
+        id: uid(),
+        title: partial.title || 'New Entry',
+        category: partial.category || 'Ops',
+        priority: partial.priority || 'P2',
+        owner: partial.owner || '',
+        status: partial.status || 'Open',
+        updatedAt: nowIso()
+      };
+      state.entries.unshift(entry);
+      state.meta.updatedAt = nowIso();
+      renderAll();
+
+      // micro: animate row in
+      const row = el.rows.querySelector(`tr[data-id="${entry.id}"]`);
+      if (row) gsap.fromTo(row, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: .45, ease: 'power3.out' });
+    }
+
+    function deleteEntry(id){
+      state.entries = state.entries.filter(e => e.id !== id);
+      state.meta.updatedAt = nowIso();
+      renderAll();
+    }
+
+    function seedDemo(){
+      state = defaultState();
+      state.entries.unshift(
+        { id: uid(), title: 'Rückruf: Kunde erwartet Update (Tonlage deeskalieren)', category: 'Customer', priority: 'P3', owner: 'CS', status: 'Open', updatedAt: nowIso() },
+        { id: uid(), title: 'Agent: Status-Update an Stakeholder (präzise, nicht lang)', category: 'Agent', priority: 'P2', owner: 'Lead', status: 'In Progress', updatedAt: nowIso() },
+        { id: uid(), title: 'Payment: Auszahlung blockiert → Ursache & ETA klären', category: 'Payment', priority: 'P1', owner: 'Finance', status: 'Blocked', updatedAt: nowIso() }
+      );
+      state.meta.updatedAt = nowIso();
+      renderAll();
+      setStatus('Seeded demo dataset.');
+    }
+
+    // Delegate table input changes
+    el.rows.addEventListener('input', (ev) => {
+      const tr = ev.target.closest('tr[data-id]');
+      if (!tr) return;
+      const id = tr.getAttribute('data-id');
+      const field = ev.target.getAttribute('data-field');
+      if (!field) return;
+
+      const patch = { [field]: ev.target.value };
+
+      // detect P3 completion cadence for Sisyphus trigger
+      if (field === 'status') {
+        const prev = state.entries.find(e => e.id === id);
+        const wasDone = prev?.status === 'Done';
+        const willDone = ev.target.value === 'Done';
+
+        touchEntry(id, patch);
+        renderKPIs(); // quick update
+
+        if (!wasDone && willDone && prev?.priority === 'P3') {
+          state.counters.completedP3 = (state.counters.completedP3 || 0) + 1;
+          const c = state.counters.completedP3;
+          if (c % 3 === 0) {
+            triggerSisyphus();
+          }
+        }
+
+        // keep rows fresh (updatedAt)
+        renderRows();
+        return;
+      }
+
+      touchEntry(id, patch);
+      renderKPIs();
+    });
+
+    el.rows.addEventListener('change', (ev) => {
+      // ensure select changes also touch updatedAt (redundant safety)
+      const tr = ev.target.closest('tr[data-id]');
+      if (!tr) return;
+      const id = tr.getAttribute('data-id');
+      const field = ev.target.getAttribute('data-field');
+      if (!field) return;
+      touchEntry(id, { [field]: ev.target.value });
+      renderAll();
+    });
+
+    el.rows.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-action]');
+      if (!btn) return;
+      const tr = ev.target.closest('tr[data-id]');
+      if (!tr) return;
+      const id = tr.getAttribute('data-id');
+      const action = btn.getAttribute('data-action');
+
+      if (action === 'delete') {
+        gsap.to(tr, { opacity: 0, y: -6, duration: .22, ease: 'power2.in', onComplete: () => deleteEntry(id) });
+      }
+    });
+
+    // Engraving hover micro-interaction (subtle "nudge")
+    el.rows.addEventListener('mouseover', (ev) => {
+      const engr = ev.target.closest('.engraving');
+      if (!engr) return;
+      gsap.fromTo(engr, { rotate: -2, y: 0 }, { rotate: 2, y: -1, duration: .26, yoyo: true, repeat: 1, ease: 'power2.inOut' });
+      // tiny hint of rock movement without full stage
+      gsap.fromTo(el.sisyRock, { x: 0 }, { x: 6, duration: .22, yoyo: true, repeat: 1, ease: 'power2.inOut' });
+    });
+
+    // Buttons
+    el.btnAdd.addEventListener('click', () => addEntry());
+    el.btnSeed.addEventListener('click', () => seedDemo());
+
+    el.btnSync.addEventListener('click', async () => {
+      const loaded = await loadData();
+      state = sanitizeState(loaded);
+      state.meta.lastSyncAt = nowIso();
+      renderAll();
+      gsap.fromTo(el.panel, { y: 6, opacity: .92 }, { y: 0, opacity: 1, duration: .5, ease: 'power3.out' });
+    });
+
+    el.btnSave.addEventListener('click', async () => {
+      state.meta.updatedAt = nowIso();
+      const res = await saveData(state);
+      state.meta.lastSyncAt = nowIso();
+      renderAll();
+      if (res?.simulated) {
+        gsap.fromTo(el.btnSave, { boxShadow: '0 0 0 rgba(0,0,0,0)' }, { boxShadow: '0 0 0 8px rgba(201,168,106,.14)', duration: .35, yoyo: true, repeat: 1 });
+      } else {
+        gsap.fromTo(el.btnSave, { boxShadow: '0 0 0 rgba(0,0,0,0)' }, { boxShadow: '0 0 0 10px rgba(155,220,255,.14)', duration: .35, yoyo: true, repeat: 1 });
+      }
+    });
+
+    // Modal config
+    el.btnConfig.addEventListener('click', () => openModal());
+    el.btnCloseModal.addEventListener('click', () => closeModal());
+    el.btnApplyCfg.addEventListener('click', () => {
+      cfg.BIN_URL = el.cfgBinUrl.value.trim();
+      cfg.X_MASTER_KEY = el.cfgMasterKey.value.trim();
+      cfg.X_ACCESS_KEY = el.cfgAccessKey.value.trim();
+      saveCfg(cfg);
+      updateConnBadge();
+      closeModal();
+      setStatus('Config applied.');
+    });
+    el.btnClearCfg.addEventListener('click', () => {
+      Object.assign(cfg, DEFAULT_CFG);
+      saveCfg(cfg);
+      openModal(true);
+      updateConnBadge();
+      setStatus('Config reset to defaults.');
+    });
+
+    function openModal(prefillOnly = false){
+      el.modal.classList.remove('hidden');
+      el.cfgBinUrl.value = cfg.BIN_URL || '';
+      el.cfgMasterKey.value = cfg.X_MASTER_KEY || '';
+      el.cfgAccessKey.value = cfg.X_ACCESS_KEY || '';
+      if (!prefillOnly) gsap.fromTo(el.modal.querySelector('.glass'), { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: .32, ease: 'power3.out' });
+    }
+    function closeModal(){
+      el.modal.classList.add('hidden');
+    }
+
+    // Quick Add
+    window.addEventListener('keydown', (ev) => {
+      const isK = (ev.key || '').toLowerCase() === 'k';
+      const mod = ev.metaKey || ev.ctrlKey;
+      if (mod && isK) {
+        ev.preventDefault();
+        openQuick();
+      }
+      if (ev.key === 'Escape') {
+        closeQuick();
+        closeModal();
+      }
+    });
+
+    el.btnCloseQuick.addEventListener('click', () => closeQuick());
+    el.btnCreateQuick.addEventListener('click', () => {
+      const entry = quickEntryFromForm();
+      addEntry(entry);
+      closeQuick();
+    });
+    el.btnCreateQuickAndSave.addEventListener('click', async () => {
+      const entry = quickEntryFromForm();
+      addEntry(entry);
+      closeQuick();
+      await saveData(state);
+      state.meta.lastSyncAt = nowIso();
+      renderAll();
+    });
+
+    function openQuick(){
+      el.quick.classList.remove('hidden');
+      el.qaTitle.value = '';
+      el.qaOwner.value = '';
+      gsap.fromTo(el.quick.querySelector('.glass'), { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: .32, ease: 'power3.out' });
+      setTimeout(() => el.qaTitle.focus(), 60);
+    }
+    function closeQuick(){
+      el.quick.classList.add('hidden');
+    }
+    function quickEntryFromForm(){
+      return {
+        title: el.qaTitle.value.trim() || 'New Entry',
+        category: el.qaCategory.value,
+        priority: el.qaPriority.value,
+        owner: el.qaOwner.value.trim(),
+        status: 'Open'
+      };
+    }
+
+    // Sisyphus image upload
+    el.btnUploadSisy.addEventListener('click', () => el.fileSisy.click());
+    el.fileSisy.addEventListener('change', async (ev) => {
+      const file = ev.target.files?.[0];
+      if (!file) return;
+      const dataUrl = await readAsDataURL(file);
+      state.assets.sisyphusDataUrl = dataUrl;
+      state.meta.updatedAt = nowIso();
+      renderAll();
+      setStatus('Sisyphus image updated (stored in-state).');
+    });
+
+    function readAsDataURL(file){
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result));
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+    }
+
+    function sanitizeState(s){
+      // minimal guardrails
+      const base = defaultState();
+      if (!s || typeof s !== 'object') return base;
+      return {
+        meta: { ...base.meta, ...(s.meta || {}) },
+        counters: { ...base.counters, ...(s.counters || {}) },
+        assets: { ...base.assets, ...(s.assets || {}) },
+        entries: Array.isArray(s.entries) ? s.entries : base.entries
+      };
+    }
+
+    // -------------------------
+    // Sisyphus Easter Egg
+    // -------------------------
+    let sisyTl = null;
+
+    function triggerSisyphus(){
+      const openEntries = (state.entries || []).filter(e => e.status !== 'Done');
+      const openCount = openEntries.length;
+
+      el.sisyCount.textContent = String(openCount);
+      el.sisyList.innerHTML = openEntries.slice(0, 3).map(e => `<div>• ${escapeHtml(e.title).slice(0, 42)}${e.title.length>42?'…':''}</div>`).join('');
+      if (openEntries.length > 3) el.sisyList.innerHTML += `<div class="text-white/45">… +${openEntries.length - 3} more</div>`;
+
+      if (sisyTl) sisyTl.kill();
+
+      // reset stage
+      gsap.set(el.sisyStage, { opacity: 0, y: 14 });
+      gsap.set(el.sisyPlaque, { opacity: 0, y: 6 });
+      gsap.set(el.sisyImg, { x: 0, y: 0, rotate: 0, scale: 1 });
+      gsap.set(el.sisyRock, { x: 0, y: 0, rotate: 0, scale: 1 });
+
+      // "uphill" path (hand-tuned)
+      const up = { x: 170, y: -54 };
+      const top = { x: 250, y: -92 };
+
+      sisyTl = gsap.timeline({ defaults: { ease: 'power2.inOut' } });
+      sisyTl
+        .to(el.sisyStage, { opacity: 1, y: 0, duration: .35, ease: 'power3.out' })
+        // push sequence
+        .to(el.sisyImg, { x: up.x * .55, y: up.y * .55, duration: 1.4 }, 0)
+        .to(el.sisyRock, { x: up.x, y: up.y, rotate: 360, duration: 1.4 }, 0)
+        .to(el.sisyImg, { x: top.x * .55, y: top.y * .55, duration: 1.15 }, '>-0.15')
+        .to(el.sisyRock, { x: top.x, y: top.y, rotate: 720, duration: 1.15 }, '<')
+        // plateau plaque
+        .to(el.sisyPlaque, { opacity: 1, y: 0, duration: .35, ease: 'power3.out' }, '>-0.05')
+        .to({}, { duration: 1.0 }) // let it breathe (watch-brand pacing)
+        // roll back (inevitable)
+        .to(el.sisyPlaque, { opacity: 0, y: 6, duration: .25 }, '>-0.05')
+        .to(el.sisyImg, { x: 0, y: 0, duration: 1.1, ease: 'power2.in' }, '<')
+        .to(el.sisyRock, { x: 0, y: 0, rotate: 1080, duration: 1.1, ease: 'power2.in' }, '<')
+        .to(el.sisyStage, { opacity: 0, y: 14, duration: .35, ease: 'power3.in' }, '>-0.05');
+    }
+
+    // -------------------------
+    // Intro Micro-UX
+    // -------------------------
+    function intro(){
+      gsap.fromTo(el.panel, { opacity: 0, y: 16, scale: .992 }, { opacity: 1, y: 0, scale: 1, duration: .85, ease: 'power3.out' });
+      gsap.fromTo('.dial', { opacity: 0 }, { opacity: 1, duration: 1.2, ease: 'power2.out' });
+    }
+
+    // -------------------------
+    // Three.js Background Scene
+    // -------------------------
+    let renderer, scene, camera, group, clock;
+    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+
+    function initThree(){
+      const container = document.getElementById('bg');
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      container.appendChild(renderer.domElement);
+
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x05060a, 0.06);
+
+      camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 80);
+      camera.position.set(0, 0, 12);
+
+      // Environment (credible specular for glass)
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      scene.environment = env;
+
+      // Lights
+      const key = new THREE.DirectionalLight(0x9bdcff, 1.1);
+      key.position.set(6, 8, 6);
+      scene.add(key);
+
+      const fill = new THREE.DirectionalLight(0xc9a86a, 0.55);
+      fill.position.set(-6, -2, 4);
+      scene.add(fill);
+
+      const hemi = new THREE.HemisphereLight(0x9bdcff, 0x05060a, 0.35);
+      scene.add(hemi);
+
+      group = new THREE.Group();
+      scene.add(group);
+
+      const glassMat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(0.95, 0.98, 1.0),
+        metalness: 0.08,
+        roughness: 0.12,
+        transmission: 1.0,
+        thickness: 1.2,
+        ior: 1.52,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.08,
+        specularIntensity: 1.0,
+        envMapIntensity: 1.2
+      });
+
+      const geo = [
+        new THREE.IcosahedronGeometry(1.15, 0),
+        new THREE.TorusKnotGeometry(0.72, 0.22, 140, 18),
+        new THREE.OctahedronGeometry(1.0, 0),
+        new THREE.DodecahedronGeometry(1.1, 0)
+      ];
+
+      const count = 12;
+      for (let i = 0; i < count; i++){
+        const g = geo[i % geo.length];
+        const m = glassMat.clone();
+        // slight tint variation
+        const t = i / count;
+        m.color = new THREE.Color().setHSL(0.56 + 0.08 * Math.sin(t * Math.PI * 2), 0.35, 0.92);
+        m.roughness = 0.10 + 0.10 * Math.random();
+        m.thickness = 0.8 + 1.4 * Math.random();
+
+        const mesh = new THREE.Mesh(g, m);
+        mesh.position.set(
+          (Math.random() - 0.5) * 14,
+          (Math.random() - 0.5) * 8,
+          (Math.random() - 0.5) * 8
+        );
+        mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        mesh.userData = {
+          base: mesh.position.clone(),
+          spin: new THREE.Vector3((Math.random() - 0.5) * 0.25, (Math.random() - 0.5) * 0.25, (Math.random() - 0.5) * 0.25),
+          phase: Math.random() * Math.PI * 2,
+          amp: 0.35 + Math.random() * 0.55
+        };
+        group.add(mesh);
+      }
+
+      clock = new THREE.Clock();
+
+      window.addEventListener('pointermove', (ev) => {
+        const nx = (ev.clientX / window.innerWidth) * 2 - 1;
+        const ny = (ev.clientY / window.innerHeight) * 2 - 1;
+        mouse.tx = nx;
+        mouse.ty = ny;
+      }, { passive: true });
+
+      window.addEventListener('resize', onResize, { passive: true });
+
+      animate();
+    }
+
+    function onResize(){
+      if (!renderer || !camera) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    }
+
+    function animate(){
+      const dt = clock.getDelta();
+      const t = clock.elapsedTime;
+
+      // viscous parallax (lerp, not twitch)
+      mouse.x += (mouse.tx - mouse.x) * (1 - Math.pow(0.001, dt));
+      mouse.y += (mouse.ty - mouse.y) * (1 - Math.pow(0.001, dt));
+
+      camera.position.x = mouse.x * 0.9;
+      camera.position.y = -mouse.y * 0.6;
+      camera.lookAt(0, 0, 0);
+
+      // float & slow spin
+      group.children.forEach((m, i) => {
+        const ud = m.userData;
+        const wobble = Math.sin(t * 0.65 + ud.phase) * ud.amp;
+        m.position.x = ud.base.x + Math.sin(t * 0.35 + i) * 0.25;
+        m.position.y = ud.base.y + wobble * 0.18;
+        m.position.z = ud.base.z + Math.cos(t * 0.28 + i) * 0.22;
+
+        m.rotation.x += ud.spin.x * dt;
+        m.rotation.y += ud.spin.y * dt;
+        m.rotation.z += ud.spin.z * dt;
+      });
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    // -------------------------
+    // Boot
+    // -------------------------
+    function boot(){
+      state = sanitizeState(state);
+      renderAll();
+      intro();
+      initThree();
+      setStatus('Ready.');
+
+      // Optional: preload Sisyphus stage image
+      el.sisyImg.src = state.assets?.sisyphusDataUrl || DEFAULT_SISYPHUS_DATA_URL;
+    }
+
+    boot();
   </script>
 </body>
 </html>
