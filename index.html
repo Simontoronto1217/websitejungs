@@ -1,1390 +1,399 @@
-<!doctype html>
-<html lang="de">
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AntiGravity — Command Center</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHRONEXT // ORBITAL COMMAND v3</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-  <!-- Tailwind (CDN) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- GSAP (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-
-  <!-- Font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
-          colors: {
-            ink: { 950: '#070812', 900: '#0a0b16', 800: '#0f1020' }
-          },
-          boxShadow: {
-            luxe: '0 40px 120px rgba(0,0,0,.55)',
-            glass: '0 12px 48px rgba(0,0,0,.35)'
-          }
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'void': '#050507',
+                        'accent-gold': '#D4AF37',
+                        'accent-alert': '#C92A2A',
+                        'accent-plat': '#E5E4E2'
+                    },
+                    fontFamily: {
+                        'serif': ['Cinzel', 'serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace'],
+                    },
+                    animation: {
+                        'scan': 'scan 2s linear infinite',
+                    },
+                    keyframes: {
+                        scan: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100%)' },
+                        }
+                    }
+                }
+            }
         }
-      }
-    }
-  </script>
+    </script>
 
-  <style>
-    :root{
-      --bg0:#05060a;
-      --bg1:#070812;
-      --glass: rgba(255,255,255,.06);
-      --glass2: rgba(255,255,255,.10);
-      --line: rgba(255,255,255,.10);
-      --line2: rgba(255,255,255,.16);
-      --text: rgba(255,255,255,.92);
-      --muted: rgba(255,255,255,.62);
-      --gold: #c9a86a;
-      --ice: #9bdcff;
-      --danger: #ff6b6b;
-      --warn: #ffcc66;
-      --ok: #7CFFB2;
-    }
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050507; color: #E5E4E2; }
+        .scroller::-webkit-scrollbar { width: 2px; }
+        .scroller::-webkit-scrollbar-thumb { background: #D4AF37; }
+        
+        .glass-panel {
+            background: rgba(10, 10, 12, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+        }
 
-    html, body {
-      height: 100%;
-      background: radial-gradient(1200px 800px at 30% 25%, rgba(155,220,255,.12), transparent 60%),
-                  radial-gradient(900px 700px at 70% 75%, rgba(201,168,106,.10), transparent 55%),
-                  linear-gradient(180deg, var(--bg1), var(--bg0));
-      color: var(--text);
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      overflow: hidden;
-    }
+        .hud-input {
+            background: rgba(0,0,0,0.4);
+            border: none;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s;
+        }
+        .hud-input:focus { outline: none; border-bottom-color: #D4AF37; background: rgba(212, 175, 55, 0.05); }
+        
+        .raw-input {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #D4AF37;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        .raw-input:focus { outline: none; border-color: #D4AF37; }
 
-    /* Background canvas container */
-    #bg {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-    }
-
-    /* Subtle film grain & vignette */
-    #fx {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 10;
-      background:
-        radial-gradient(1200px 900px at 50% 35%, transparent 35%, rgba(0,0,0,.55) 85%),
-        repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 3px);
-      mix-blend-mode: overlay;
-      opacity: .28;
-      filter: blur(.2px);
-    }
-
-    /* Glass panel */
-    .glass {
-      background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.04));
-      border: 1px solid rgba(255,255,255,.14);
-      box-shadow: var(--tw-shadow-color, 0 12px 48px rgba(0,0,0,.35));
-      backdrop-filter: blur(18px) saturate(140%);
-      -webkit-backdrop-filter: blur(18px) saturate(140%);
-    }
-
-    /* Premium hairlines */
-    .hairline {
-      border-color: rgba(255,255,255,.12);
-    }
-
-    /* Custom scroll for table */
-    .scroll-luxe::-webkit-scrollbar { width: 10px; height: 10px; }
-    .scroll-luxe::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,.14);
-      border: 2px solid rgba(0,0,0,.0);
-      background-clip: padding-box;
-      border-radius: 10px;
-    }
-    .scroll-luxe::-webkit-scrollbar-track { background: rgba(255,255,255,.03); border-radius: 10px; }
-
-    /* Inputs */
-    .field {
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 10px;
-      padding: 10px 12px;
-      outline: none;
-      transition: transform .18s ease, border-color .18s ease, background .18s ease;
-    }
-    .field:focus {
-      border-color: rgba(155,220,255,.38);
-      background: rgba(255,255,255,.06);
-      transform: translateY(-1px);
-    }
-
-    /* Buttons */
-    .btn {
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      border-radius: 12px;
-      padding: 10px 14px;
-      transition: transform .18s ease, background .18s ease, border-color .18s ease;
-    }
-    .btn:hover { transform: translateY(-1px); background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.20); }
-    .btn:active { transform: translateY(0px) scale(.99); }
-
-    .btn-primary {
-      border-color: rgba(155,220,255,.28);
-      background: linear-gradient(180deg, rgba(155,220,255,.18), rgba(155,220,255,.08));
-    }
-    .btn-gold {
-      border-color: rgba(201,168,106,.28);
-      background: linear-gradient(180deg, rgba(201,168,106,.16), rgba(201,168,106,.06));
-    }
-
-    /* Dial widget */
-    .dial {
-      position: relative;
-      width: 120px; height: 120px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 40% 35%, rgba(255,255,255,.08), rgba(255,255,255,.02));
-      border: 1px solid rgba(255,255,255,.14);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
-      overflow: hidden;
-    }
-    .dial::after{
-      content:"";
-      position:absolute; inset:-40%;
-      background: conic-gradient(from 210deg, rgba(201,168,106,.0), rgba(201,168,106,.18), rgba(155,220,255,.12), rgba(201,168,106,.0));
-      filter: blur(12px);
-      opacity: .8;
-      animation: dialGlow 9s linear infinite;
-    }
-    @keyframes dialGlow { to { transform: rotate(360deg); } }
-
-    .engraving {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 26px; height: 26px;
-      border-radius: 999px;
-      border: 1px solid rgba(201,168,106,.22);
-      color: rgba(201,168,106,.95);
-      background: rgba(201,168,106,.08);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
-      cursor: default;
-      user-select: none;
-    }
-
-    /* Sisyphus stage */
-    #sisyphusStage{
-      position: fixed;
-      left: 24px;
-      bottom: 22px;
-      width: 420px;
-      height: 220px;
-      pointer-events: none;
-      z-index: 20;
-      opacity: 0;
-      transform: translateY(14px);
-      filter: drop-shadow(0 18px 50px rgba(0,0,0,.55));
-    }
-    #sisyphusHill {
-      position:absolute; inset: 0;
-      background:
-        linear-gradient(140deg, rgba(255,255,255,.00) 30%, rgba(255,255,255,.06) 35%, rgba(255,255,255,.00) 55%),
-        linear-gradient(160deg, rgba(0,0,0,.0) 30%, rgba(0,0,0,.22) 70%),
-        radial-gradient(800px 300px at 20% 140%, rgba(201,168,106,.14), transparent 55%);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-    }
-    #sisyphusFigure {
-      position: absolute;
-      left: 40px;
-      bottom: 46px;
-      width: 120px;
-      opacity: .96;
-    }
-    #sisyphusRock {
-      position: absolute;
-      left: 160px;
-      bottom: 58px;
-      width: 42px;
-      height: 42px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.20), rgba(255,255,255,.05));
-      border: 1px solid rgba(255,255,255,.18);
-      box-shadow: inset 0 2px 10px rgba(0,0,0,.35);
-    }
-    #sisyphusPlaque {
-      position:absolute;
-      right: 18px;
-      top: 18px;
-      width: 210px;
-      padding: 12px 12px;
-      border-radius: 16px;
-      background: rgba(0,0,0,.20);
-      border: 1px solid rgba(255,255,255,.14);
-      backdrop-filter: blur(14px);
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    #sisyphusPlaque .title{
-      font-size: 12px;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,.72);
-    }
-    #sisyphusPlaque .count{
-      font-size: 30px;
-      font-weight: 700;
-      line-height: 1.05;
-      margin-top: 6px;
-    }
-    #sisyphusPlaque .list{
-      margin-top: 8px;
-      font-size: 12px;
-      color: rgba(255,255,255,.68);
-      display: grid;
-      gap: 4px;
-    }
-
-    /* Connection badge */
-    .badge {
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.05);
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 12px;
-      color: rgba(255,255,255,.72);
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-    }
-    .dot { width:8px; height:8px; border-radius:999px; background: rgba(255,255,255,.45); }
-    .dot.ok { background: rgba(124,255,178,.75); }
-    .dot.warn { background: rgba(255,204,102,.8); }
-  </style>
+        .range-slider { -webkit-appearance: none; width: 100%; height: 2px; background: rgba(255,255,255,0.2); outline: none; }
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; background: #D4AF37; border-radius: 50%; cursor: pointer;
+            box-shadow: 0 0 10px #D4AF37;
+        }
+    </style>
 </head>
 
-<body>
-  <!-- Three.js background -->
-  <div id="bg" aria-hidden="true"></div>
-  <div id="fx" aria-hidden="true"></div>
+<body x-data="dashboard()">
 
-  <!-- Main UI -->
-  <main class="relative z-10 h-full w-full">
-    <section class="h-full w-full flex items-center justify-center p-6">
-      <div id="panel" class="glass shadow-glass w-full max-w-6xl rounded-3xl overflow-hidden">
-        <!-- Header -->
-        <header class="px-6 py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div class="flex items-start gap-4">
-            <div class="dial shrink-0"></div>
+    <div id="canvas-container" class="fixed inset-0 z-0 opacity-50 pointer-events-none"></div>
+
+    <main class="relative z-10 w-full h-screen flex flex-col items-center justify-center p-6">
+        
+        <header class="w-full max-w-7xl flex justify-between items-end mb-6">
             <div>
-              <div class="text-xs tracking-[.24em] uppercase text-white/60">AntiGravity</div>
-              <h1 class="text-2xl md:text-3xl font-semibold leading-tight">
-                Command Center <span class="text-white/50 font-normal">— Intervention Dashboard</span>
-              </h1>
-              <p class="text-sm text-white/60 mt-1 max-w-xl">
-                Kollaboration via JSON-Bin: kein Backend-Pathos, nur konsequente Persistenz. 3D ist Atmosphäre, nicht Ablenkung.
-              </p>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-2 h-2 rounded-full" :class="connectionStatus === 'LIVE' ? 'bg-green-500 shadow-[0_0_10px_#0f0]' : 'bg-red-500'"></div>
+                    <p class="font-mono text-[10px] tracking-widest text-gray-500" x-text="'LINK STATUS: ' + connectionStatus"></p>
+                </div>
+                <h1 class="font-serif text-3xl text-white tracking-widest">CHRONEXT <span class="text-accent-gold">.OPS</span></h1>
             </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2 md:justify-end">
-            <span id="connBadge" class="badge">
-              <span class="dot warn" id="connDot"></span>
-              <span id="connText">Local simulation</span>
-            </span>
-            <button id="btnConfig" class="btn">Config</button>
-            <button id="btnSync" class="btn btn-primary">Sync</button>
-            <button id="btnSave" class="btn btn-gold">Save</button>
-          </div>
+            
+            <div class="flex gap-4">
+                <button @click="toggleModal()" class="group flex items-center gap-2 px-6 py-2 border border-accent-gold/30 hover:bg-accent-gold/10 transition-all bg-black/50 backdrop-blur-md">
+                    <span class="text-accent-gold font-mono text-xl">+</span>
+                    <span class="font-sans text-xs tracking-widest text-accent-gold">NEW INTEL</span>
+                </button>
+                <button @click="syncData()" class="px-4 py-2 border border-white/10 hover:bg-white/5 transition-all bg-black/50 backdrop-blur-md">
+                    <span x-show="!isLoading" class="text-xs font-mono text-gray-400">SYNC</span>
+                    <svg x-show="isLoading" class="w-4 h-4 text-accent-gold animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+                </button>
+            </div>
         </header>
 
-        <!-- KPIs -->
-        <section class="px-6 pb-4">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div class="glass rounded-2xl p-4 hairline">
-              <div class="text-xs tracking-[.22em] uppercase text-white/55">Open Tickets</div>
-              <div class="mt-2 flex items-end gap-3">
-                <div id="kpiOpen" class="text-4xl font-semibold">—</div>
-                <div class="text-sm text-white/55 pb-1">gesamt</div>
-              </div>
-              <div id="kpiOpenHint" class="text-xs text-white/45 mt-2">…</div>
+        <div class="w-full max-w-7xl flex-1 glass-panel flex flex-col overflow-hidden relative">
+            <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 bg-black/40 font-serif text-[10px] tracking-[0.2em] text-gray-500 uppercase sticky top-0 z-20">
+                <div class="col-span-1 text-center">Sev</div>
+                <div class="col-span-2">Client Identity</div>
+                <div class="col-span-5">Contextual Data</div>
+                <div class="col-span-2">Action</div>
+                <div class="col-span-2 text-right">Access</div>
             </div>
 
-            <div class="glass rounded-2xl p-4 hairline">
-              <div class="text-xs tracking-[.22em] uppercase text-white/55">Priorities</div>
-              <div class="mt-2 grid grid-cols-3 gap-2 text-sm">
-                <div class="rounded-xl bg-white/5 border border-white/10 p-3">
-                  <div class="text-white/50 text-xs">P1</div>
-                  <div id="kpiP1" class="text-xl font-semibold mt-1">—</div>
-                </div>
-                <div class="rounded-xl bg-white/5 border border-white/10 p-3">
-                  <div class="text-white/50 text-xs">P2</div>
-                  <div id="kpiP2" class="text-xl font-semibold mt-1">—</div>
-                </div>
-                <div class="rounded-xl bg-white/5 border border-white/10 p-3">
-                  <div class="text-white/50 text-xs">P3</div>
-                  <div id="kpiP3" class="text-xl font-semibold mt-1">—</div>
-                </div>
-              </div>
-              <div class="text-xs text-white/45 mt-2">Easter Egg: jede 3. erledigte P3-Eskalation.</div>
+            <div class="scroller overflow-y-auto flex-1 p-2 space-y-1">
+                <template x-for="ticket in sortedTickets" :key="ticket.id">
+                    <div class="grid grid-cols-12 gap-4 p-4 items-center border-b border-white/5 hover:bg-white/5 transition-all group relative">
+                        <div class="col-span-1 flex justify-center">
+                            <div class="font-serif font-bold text-lg" :class="ticket.severity >= 9 ? 'text-accent-alert drop-shadow-[0_0_8px_rgba(201,42,42,0.8)]' : (ticket.severity >= 6 ? 'text-accent-gold' : 'text-gray-500')">
+                                <span x-text="ticket.severity"></span>
+                            </div>
+                        </div>
+                        <div class="col-span-2">
+                            <div class="font-sans font-medium text-white text-sm tracking-wide truncate" x-text="ticket.client"></div>
+                            <div class="font-mono text-[10px] text-gray-500 mt-1 truncate" x-text="ticket.ref_id"></div>
+                        </div>
+                        <div class="col-span-5 pr-4">
+                            <p class="font-sans text-xs text-gray-300 leading-relaxed opacity-80 line-clamp-2" x-text="ticket.context"></p>
+                            <template x-if="ticket.meta_copy">
+                                <div @click="copy(ticket.meta_copy)" class="mt-2 inline-flex items-center gap-2 px-2 py-1 bg-white/5 rounded cursor-pointer hover:bg-accent-gold/20 transition-colors border border-white/5 hover:border-accent-gold/50">
+                                    <svg class="w-3 h-3 text-accent-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                                    <span class="font-mono text-[10px] text-accent-gold tracking-wider" x-text="ticket.meta_copy"></span>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="text-[10px] uppercase tracking-widest border border-white/20 px-2 py-1 text-gray-300" x-text="ticket.action"></span>
+                        </div>
+                        <div class="col-span-2 flex justify-end items-center gap-3">
+                            <template x-if="ticket.link">
+                                <a :href="ticket.link" target="_blank" class="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-accent-gold hover:border-accent-gold hover:text-black transition-all">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                </a>
+                            </template>
+                            <button @click="archive(ticket.id)" class="text-gray-600 hover:text-red-500 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </template>
             </div>
-
-            <div class="glass rounded-2xl p-4 hairline">
-              <div class="text-xs tracking-[.22em] uppercase text-white/55">Health</div>
-              <div class="mt-2 flex items-center justify-between">
-                <div>
-                  <div class="text-sm text-white/55">Last sync</div>
-                  <div id="kpiLastSync" class="text-lg font-semibold mt-1">—</div>
-                </div>
-                <div class="text-right">
-                  <div class="text-sm text-white/55">Mode</div>
-                  <div id="kpiMode" class="text-lg font-semibold mt-1">—</div>
-                </div>
-              </div>
-              <div class="text-xs text-white/45 mt-2">Optimistisch, aber nicht naiv: Konflikte werden sichtbar, nicht „magisch“ gelöst.</div>
-            </div>
-
-            <div class="glass rounded-2xl p-4 hairline">
-              <div class="text-xs tracking-[.22em] uppercase text-white/55">Quick Actions</div>
-              <div class="mt-3 flex flex-wrap gap-2">
-                <button id="btnAdd" class="btn btn-primary">Add Entry</button>
-                <button id="btnSeed" class="btn">Seed Demo</button>
-                <button id="btnUploadSisy" class="btn">Sisyphus Image</button>
-              </div>
-              <div class="text-xs text-white/45 mt-2">Tipp: <span class="text-white/60">Cmd/Ctrl + K</span> öffnet Quick Add.</div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Table -->
-        <section class="px-6 pb-6">
-          <div class="glass rounded-2xl hairline overflow-hidden">
-            <div class="px-4 py-3 flex items-center justify-between">
-              <div class="text-xs tracking-[.22em] uppercase text-white/55">Entries</div>
-              <div class="text-xs text-white/45" id="statusLine">…</div>
-            </div>
-
-            <div class="max-h-[420px] overflow-auto scroll-luxe">
-              <table class="w-full text-sm">
-                <thead class="sticky top-0 z-10 bg-black/25 backdrop-blur-md">
-                  <tr class="text-white/55">
-                    <th class="text-left font-medium px-4 py-3">Title</th>
-                    <th class="text-left font-medium px-4 py-3">Category</th>
-                    <th class="text-left font-medium px-4 py-3">Priority</th>
-                    <th class="text-left font-medium px-4 py-3">Owner</th>
-                    <th class="text-left font-medium px-4 py-3">Status</th>
-                    <th class="text-left font-medium px-4 py-3">Updated</th>
-                    <th class="text-right font-medium px-4 py-3 w-[90px]">—</th>
-                  </tr>
-                </thead>
-                <tbody id="entryRows" class="divide-y divide-white/10"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      </div>
-    </section>
-  </main>
-
-  <!-- Sisyphus Easter Egg Stage -->
-  <div id="sisyphusStage" aria-hidden="true">
-    <div id="sisyphusHill"></div>
-    <img id="sisyphusFigure" alt="Sisyphus" />
-    <div id="sisyphusRock"></div>
-    <div id="sisyphusPlaque">
-      <div class="title">OPEN TICKETS</div>
-      <div class="count" id="sisyCount">—</div>
-      <div class="list" id="sisyList"></div>
-    </div>
-  </div>
-
-  <!-- Hidden file input for Sisyphus image -->
-  <input id="fileSisy" type="file" accept="image/*" class="hidden" />
-
-  <!-- Config Modal -->
-  <div id="modal" class="fixed inset-0 z-30 hidden">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-6">
-      <div class="glass shadow-luxe w-full max-w-xl rounded-3xl p-5">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <div class="text-xs tracking-[.24em] uppercase text-white/55">Persistence</div>
-            <h2 class="text-xl font-semibold mt-1">JSON-Bin Configuration</h2>
-            <p class="text-sm text-white/55 mt-1">
-              Placeholder ist erlaubt. Ohne Key wird lokal simuliert (LocalStorage + Console).
-            </p>
-          </div>
-          <button id="btnCloseModal" class="btn">Close</button>
         </div>
 
-        <div class="mt-4 grid gap-3">
-          <label class="grid gap-2">
-            <span class="text-xs text-white/55 tracking-[.20em] uppercase">BIN URL (v3)</span>
-            <input id="cfgBinUrl" class="field w-full" placeholder="https://api.jsonbin.io/v3/b/YOUR_BIN_ID" />
-          </label>
-
-          <label class="grid gap-2">
-            <span class="text-xs text-white/55 tracking-[.20em] uppercase">X-Master-Key (optional)</span>
-            <input id="cfgMasterKey" class="field w-full" placeholder="YOUR_MASTER_KEY" />
-          </label>
-
-          <label class="grid gap-2">
-            <span class="text-xs text-white/55 tracking-[.20em] uppercase">X-Access-Key (optional)</span>
-            <input id="cfgAccessKey" class="field w-full" placeholder="YOUR_ACCESS_KEY" />
-          </label>
-
-          <div class="flex flex-wrap gap-2 mt-2">
-            <button id="btnApplyCfg" class="btn btn-primary">Apply</button>
-            <button id="btnClearCfg" class="btn">Reset</button>
-          </div>
-
-          <div class="text-xs text-white/45 mt-2">
-            Hinweis: JSON-Bin v3 liefert typischerweise <code class="text-white/60">{"record": ...}</code>.
-            Diese App schreibt/liest direkt den Record.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick Add (Cmd/Ctrl+K) -->
-  <div id="quick" class="fixed inset-0 z-30 hidden">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-6">
-      <div class="glass shadow-luxe w-full max-w-2xl rounded-3xl p-5">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <div class="text-xs tracking-[.24em] uppercase text-white/55">Quick Add</div>
-            <h2 class="text-xl font-semibold mt-1">New Entry</h2>
-          </div>
-          <button id="btnCloseQuick" class="btn">Close</button>
-        </div>
-
-        <div class="mt-4 grid gap-3">
-          <label class="grid gap-2">
-            <span class="text-xs text-white/55 tracking-[.20em] uppercase">Title</span>
-            <input id="qaTitle" class="field w-full" placeholder="z.B. Auszahlung prüfen / DHL Abholung / Rückruf …" />
-          </label>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <label class="grid gap-2">
-              <span class="text-xs text-white/55 tracking-[.20em] uppercase">Category</span>
-              <select id="qaCategory" class="field w-full">
-                <option>Payment</option>
-                <option>Logistics</option>
-                <option>Customer</option>
-                <option>Sales</option>
-                <option>Ops</option>
-                <option>Agent</option>
-              </select>
-            </label>
-
-            <label class="grid gap-2">
-              <span class="text-xs text-white/55 tracking-[.20em] uppercase">Priority</span>
-              <select id="qaPriority" class="field w-full">
-                <option>P1</option>
-                <option selected>P2</option>
-                <option>P3</option>
-              </select>
-            </label>
-
-            <label class="grid gap-2">
-              <span class="text-xs text-white/55 tracking-[.20em] uppercase">Owner</span>
-              <input id="qaOwner" class="field w-full" placeholder="Initials / Team" />
-            </label>
-          </div>
-
-          <div class="flex gap-2 mt-2">
-            <button id="btnCreateQuick" class="btn btn-primary">Create</button>
-            <button id="btnCreateQuickAndSave" class="btn btn-gold">Create + Save</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-    import { RoomEnvironment } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/environments/RoomEnvironment.js';
-
-    /**
-     * AntiGravity — single-file, "vibecode" Command Center
-     * - Three.js glass scene as background atmosphere
-     * - Tailwind glass panel overlay
-     * - GSAP micro-interactions
-     * - JSON-Bin persistence (GET/PUT), fallback local simulation
-     */
-
-    // -------------------------
-    // Persistence Configuration
-    // -------------------------
-    const STORAGE_KEY = 'antigravity_state_v1';
-    const CFG_KEY = 'antigravity_cfg_v1';
-
-    const DEFAULT_CFG = {
-      BIN_URL: 'https://api.jsonbin.io/v3/b/YOUR_BIN_ID',
-      X_MASTER_KEY: 'YOUR_MASTER_KEY',
-      X_ACCESS_KEY: 'YOUR_ACCESS_KEY'
-    };
-
-    const cfg = loadCfg();
-
-    function loadCfg(){
-      try {
-        const raw = localStorage.getItem(CFG_KEY);
-        return raw ? { ...DEFAULT_CFG, ...JSON.parse(raw) } : { ...DEFAULT_CFG };
-      } catch {
-        return { ...DEFAULT_CFG };
-      }
-    }
-
-    function saveCfg(next){
-      localStorage.setItem(CFG_KEY, JSON.stringify(next));
-    }
-
-    function hasRealCloudConfig(){
-      const u = (cfg.BIN_URL || '').trim();
-      const hasBin = u.startsWith('https://api.jsonbin.io/v3/b/') && !u.includes('YOUR_BIN_ID');
-      const hasKey = !String(cfg.X_MASTER_KEY || '').includes('YOUR_MASTER_KEY') && String(cfg.X_MASTER_KEY || '').trim().length > 10;
-      const hasAccess = !String(cfg.X_ACCESS_KEY || '').includes('YOUR_ACCESS_KEY') && String(cfg.X_ACCESS_KEY || '').trim().length > 10;
-      return { hasBin, hasKey, hasAccess, isReady: hasBin && (hasKey || hasAccess) };
-    }
-
-    async function jsonBinFetch({ pathSuffix = '', method = 'GET', body = null }){
-      const url = (cfg.BIN_URL || '').trim() + pathSuffix;
-      const headers = { 'Content-Type': 'application/json' };
-
-      if (cfg.X_MASTER_KEY && !cfg.X_MASTER_KEY.includes('YOUR_MASTER_KEY')) headers['X-Master-Key'] = cfg.X_MASTER_KEY.trim();
-      if (cfg.X_ACCESS_KEY && !cfg.X_ACCESS_KEY.includes('YOUR_ACCESS_KEY')) headers['X-Access-Key'] = cfg.X_ACCESS_KEY.trim();
-
-      const init = { method, headers };
-      if (body !== null) init.body = JSON.stringify(body);
-
-      const res = await fetch(url, init);
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(`JSON-Bin ${method} failed (${res.status}): ${text.slice(0, 220)}`);
-      }
-      return res.json();
-    }
-
-    async function loadData(){
-      const cloud = hasRealCloudConfig();
-      setStatus(`Loading… (${cloud.isReady ? 'cloud' : 'local'})`);
-
-      if (!cloud.isReady) {
-        // local simulation
-        const local = loadLocalState();
-        setStatus('Loaded (local simulation).');
-        return local;
-      }
-
-      try {
-        // v3: GET /latest
-        const payload = await jsonBinFetch({ pathSuffix: '/latest', method: 'GET' });
-        const record = payload?.record;
-        if (!record) throw new Error('No record in JSON-Bin response.');
-        setStatus('Loaded (cloud).');
-        return record;
-      } catch (err) {
-        console.warn('[AntiGravity] loadData() cloud failed; falling back:', err);
-        const local = loadLocalState();
-        setStatus('Cloud load failed → local fallback.');
-        return local;
-      }
-    }
-
-    async function saveData(state){
-      const cloud = hasRealCloudConfig();
-      setStatus(`Saving… (${cloud.isReady ? 'cloud' : 'local'})`);
-
-      // always keep local shadow copy (fast, resilient)
-      saveLocalState(state);
-
-      if (!cloud.isReady) {
-        console.log('[AntiGravity] Simulated PUT →', cfg.BIN_URL, state);
-        setStatus('Saved (local simulation).');
-        return { simulated: true };
-      }
-
-      try {
-        // v3: PUT /b/:id  (write record)
-        const payload = await jsonBinFetch({ method: 'PUT', body: state });
-        setStatus('Saved (cloud).');
-        return payload;
-      } catch (err) {
-        console.warn('[AntiGravity] saveData() cloud failed; local copy preserved:', err);
-        setStatus('Cloud save failed → local preserved.');
-        return { error: String(err) };
-      }
-    }
-
-    function loadLocalState(){
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return defaultState();
-        return JSON.parse(raw);
-      } catch {
-        return defaultState();
-      }
-    }
-
-    function saveLocalState(state){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
-
-    // -------------------------
-    // State Model
-    // -------------------------
-    function uid(){
-      return 'e_' + Math.random().toString(16).slice(2) + '_' + Date.now().toString(16);
-    }
-    function nowIso(){
-      return new Date().toISOString();
-    }
-
-    const DEFAULT_SISYPHUS_DATA_URL = (() => {
-      // Minimal, stylized Sisyphus silhouette (inline SVG -> data URL)
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160">
-          <defs>
-            <linearGradient id="g" x1="0" x2="1">
-              <stop offset="0" stop-color="rgba(255,255,255,.92)"/>
-              <stop offset="1" stop-color="rgba(201,168,106,.92)"/>
-            </linearGradient>
-            <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="rgba(0,0,0,.55)"/>
-            </filter>
-          </defs>
-          <g filter="url(#s)" opacity=".95" fill="url(#g)">
-            <!-- hill hint -->
-            <path d="M10 140 C 70 120, 140 110, 230 70 L230 160 L10 160 Z" opacity=".18"/>
-            <!-- body -->
-            <circle cx="82" cy="74" r="12"/>
-            <path d="M78 88 C 66 102, 58 120, 52 138 C 50 144, 60 148, 64 142 C 74 128, 84 112, 96 104 C 112 93, 124 92, 138 90 C 144 89, 144 80, 138 80 C 120 80, 104 82, 92 92 Z" />
-            <!-- arm pushing -->
-            <path d="M92 98 C 104 90, 118 84, 134 78 C 140 76, 144 84, 138 88 C 124 96, 110 104, 98 112 C 94 114, 88 102, 92 98 Z"/>
-            <!-- rock -->
-            <circle cx="170" cy="78" r="20" opacity=".90"/>
-          </g>
-        </svg>
-      `.trim();
-      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    })();
-
-    function defaultState(){
-      return {
-        meta: {
-          version: 1,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-          lastSyncAt: null,
-          mode: 'AntiGravity'
-        },
-        counters: {
-          completedP3: 0
-        },
-        assets: {
-          sisyphusDataUrl: DEFAULT_SISYPHUS_DATA_URL
-        },
-        entries: [
-          {
-            id: uid(),
-            title: 'Auszahlung prüfen: Kunde wartet auf Rückmeldung',
-            category: 'Payment',
-            priority: 'P2',
-            owner: 'Ops',
-            status: 'Open',
-            updatedAt: nowIso()
-          },
-          {
-            id: uid(),
-            title: 'DHL Abholung / Logistik-Update: Uhr unterwegs',
-            category: 'Logistics',
-            priority: 'P3',
-            owner: 'Logistics',
-            status: 'Open',
-            updatedAt: nowIso()
-          },
-          {
-            id: uid(),
-            title: 'Kommission/Preis: Klärung mit Sales erforderlich',
-            category: 'Sales',
-            priority: 'P1',
-            owner: 'Sales',
-            status: 'Open',
-            updatedAt: nowIso()
-          }
-        ]
-      };
-    }
-
-    let state = loadLocalState();
-
-    // -------------------------
-    // DOM Elements
-    // -------------------------
-    const el = {
-      panel: document.getElementById('panel'),
-      rows: document.getElementById('entryRows'),
-      statusLine: document.getElementById('statusLine'),
-
-      connDot: document.getElementById('connDot'),
-      connText: document.getElementById('connText'),
-
-      kpiOpen: document.getElementById('kpiOpen'),
-      kpiOpenHint: document.getElementById('kpiOpenHint'),
-      kpiP1: document.getElementById('kpiP1'),
-      kpiP2: document.getElementById('kpiP2'),
-      kpiP3: document.getElementById('kpiP3'),
-      kpiLastSync: document.getElementById('kpiLastSync'),
-      kpiMode: document.getElementById('kpiMode'),
-
-      btnAdd: document.getElementById('btnAdd'),
-      btnSeed: document.getElementById('btnSeed'),
-      btnSync: document.getElementById('btnSync'),
-      btnSave: document.getElementById('btnSave'),
-      btnConfig: document.getElementById('btnConfig'),
-      btnUploadSisy: document.getElementById('btnUploadSisy'),
-
-      modal: document.getElementById('modal'),
-      btnCloseModal: document.getElementById('btnCloseModal'),
-      cfgBinUrl: document.getElementById('cfgBinUrl'),
-      cfgMasterKey: document.getElementById('cfgMasterKey'),
-      cfgAccessKey: document.getElementById('cfgAccessKey'),
-      btnApplyCfg: document.getElementById('btnApplyCfg'),
-      btnClearCfg: document.getElementById('btnClearCfg'),
-
-      quick: document.getElementById('quick'),
-      btnCloseQuick: document.getElementById('btnCloseQuick'),
-      qaTitle: document.getElementById('qaTitle'),
-      qaCategory: document.getElementById('qaCategory'),
-      qaPriority: document.getElementById('qaPriority'),
-      qaOwner: document.getElementById('qaOwner'),
-      btnCreateQuick: document.getElementById('btnCreateQuick'),
-      btnCreateQuickAndSave: document.getElementById('btnCreateQuickAndSave'),
-
-      // Sisyphus
-      sisyStage: document.getElementById('sisyphusStage'),
-      sisyImg: document.getElementById('sisyphusFigure'),
-      sisyRock: document.getElementById('sisyphusRock'),
-      sisyPlaque: document.getElementById('sisyphusPlaque'),
-      sisyCount: document.getElementById('sisyCount'),
-      sisyList: document.getElementById('sisyList'),
-
-      fileSisy: document.getElementById('fileSisy')
-    };
-
-    // -------------------------
-    // Rendering
-    // -------------------------
-    function fmtTime(iso){
-      try {
-        const d = new Date(iso);
-        return d.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
-      } catch {
-        return '—';
-      }
-    }
-
-    function setStatus(text){
-      el.statusLine.textContent = text;
-    }
-
-    function updateConnBadge(){
-      const cloud = hasRealCloudConfig();
-      if (cloud.isReady) {
-        el.connDot.className = 'dot ok';
-        el.connText.textContent = 'Cloud (JSON-Bin)';
-      } else if (cloud.hasBin) {
-        el.connDot.className = 'dot warn';
-        el.connText.textContent = 'Bin set, key missing (simulation)';
-      } else {
-        el.connDot.className = 'dot warn';
-        el.connText.textContent = 'Local simulation';
-      }
-    }
-
-    function computeKPIs(){
-      const entries = state.entries || [];
-      const open = entries.filter(e => e.status !== 'Done').length;
-      const p1 = entries.filter(e => e.priority === 'P1' && e.status !== 'Done').length;
-      const p2 = entries.filter(e => e.priority === 'P2' && e.status !== 'Done').length;
-      const p3 = entries.filter(e => e.priority === 'P3' && e.status !== 'Done').length;
-      return { open, p1, p2, p3 };
-    }
-
-    function renderKPIs(){
-      const { open, p1, p2, p3 } = computeKPIs();
-      el.kpiOpen.textContent = String(open);
-      el.kpiP1.textContent = String(p1);
-      el.kpiP2.textContent = String(p2);
-      el.kpiP3.textContent = String(p3);
-
-      const last = state.meta?.lastSyncAt ? fmtTime(state.meta.lastSyncAt) : '—';
-      el.kpiLastSync.textContent = last;
-      el.kpiMode.textContent = hasRealCloudConfig().isReady ? 'Cloud' : 'Local';
-
-      const tension = (p1 * 3 + p2 * 2 + p3 * 1);
-      const hint = tension === 0
-        ? 'Calm surface. No submerged fires.'
-        : tension >= 8
-          ? 'High torque. Priorities are grinding.'
-          : 'Moderate load. Keep the cadence.';
-      el.kpiOpenHint.textContent = hint;
-    }
-
-    function p3OrdinalMap(){
-      // Map: entryId -> ordinal among P3 entries by updatedAt (stable-ish)
-      const p3 = [...state.entries]
-        .filter(e => e.priority === 'P3')
-        .sort((a,b) => String(a.updatedAt).localeCompare(String(b.updatedAt)));
-      const map = new Map();
-      p3.forEach((e, i) => map.set(e.id, i + 1));
-      return map;
-    }
-
-    function renderRows(){
-      const entries = state.entries || [];
-      const p3Map = p3OrdinalMap();
-
-      el.rows.innerHTML = entries
-        .slice()
-        .sort((a,b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
-        .map(e => {
-          const ord = p3Map.get(e.id) || 0;
-          const hasEngraving = e.priority === 'P3' && ord % 3 === 0;
-
-          const prColor =
-            e.priority === 'P1' ? 'text-red-200' :
-            e.priority === 'P2' ? 'text-amber-200' :
-            'text-emerald-200';
-
-          const stChip =
-            e.status === 'Done'
-              ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-100'
-              : e.status === 'Blocked'
-                ? 'bg-red-500/15 border-red-400/20 text-red-100'
-                : 'bg-white/5 border-white/10 text-white/75';
-
-          return `
-            <tr data-id="${e.id}" class="hover:bg-white/3 transition-colors">
-              <td class="px-4 py-3 align-top">
-                <input class="field w-full" data-field="title" value="${escapeHtml(e.title)}" />
-              </td>
-              <td class="px-4 py-3 align-top">
-                <select class="field w-full" data-field="category">
-                  ${['Payment','Logistics','Customer','Sales','Ops','Agent'].map(c => `
-                    <option ${c===e.category?'selected':''}>${c}</option>
-                  `).join('')}
-                </select>
-              </td>
-              <td class="px-4 py-3 align-top">
-                <select class="field w-full ${prColor}" data-field="priority">
-                  ${['P1','P2','P3'].map(p => `<option ${p===e.priority?'selected':''}>${p}</option>`).join('')}
-                </select>
-              </td>
-              <td class="px-4 py-3 align-top">
-                <input class="field w-full" data-field="owner" value="${escapeHtml(e.owner || '')}" placeholder="Team" />
-              </td>
-              <td class="px-4 py-3 align-top">
-                <select class="field w-full border ${stChip}" data-field="status">
-                  ${['Open','In Progress','Blocked','Done'].map(s => `<option ${s===e.status?'selected':''}>${s}</option>`).join('')}
-                </select>
-              </td>
-              <td class="px-4 py-3 align-top text-white/55 whitespace-nowrap">${fmtTime(e.updatedAt)}</td>
-              <td class="px-4 py-3 align-top text-right">
-                <div class="flex items-center justify-end gap-2">
-                  ${hasEngraving ? `<span class="engraving" title="engraved cadence">∴</span>` : ''}
-                  <button class="btn px-3 py-2 text-xs" data-action="delete">Delete</button>
+        <div x-show="showInput" 
+             x-transition.opacity.duration.300ms
+             class="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md">
+            
+            <div class="w-full max-w-4xl bg-[#0a0a0c] border border-accent-gold/20 p-8 shadow-[0_0_100px_rgba(0,0,0,0.9)] relative flex gap-8">
+                
+                <div class="w-1/2 flex flex-col">
+                    <h2 class="font-serif text-lg text-accent-gold mb-4 tracking-widest flex items-center gap-2">
+                        <span class="w-2 h-2 bg-accent-gold rounded-full animate-pulse"></span> RAW DATA INPUT
+                    </h2>
+                    <p class="text-[10px] text-gray-500 mb-2 font-mono">PASTE EMAIL / SLACK / TICKET TEXT HERE</p>
+                    <textarea x-model="rawData" class="raw-input w-full flex-1 p-4 rounded-sm resize-none" placeholder="Paste messy text here... Example: 'Bitte Kunde Herr Müller zurückrufen wegen SR12345678, er droht mit Anwalt...'"></textarea>
+                    
+                    <button @click="analyzeData()" class="mt-4 w-full py-3 bg-white/5 border border-white/10 hover:border-accent-gold text-white font-serif text-xs tracking-widest hover:bg-white/10 transition-all flex justify-center items-center gap-2 group">
+                        <span x-show="!isAnalyzing">ANALYZE & PROCESS</span>
+                        <span x-show="isAnalyzing" class="animate-pulse">DECRYPTING...</span>
+                    </button>
                 </div>
-              </td>
-            </tr>
-          `;
-        }).join('');
-    }
 
-    function escapeHtml(str){
-      return String(str ?? '')
-        .replaceAll('&','&amp;')
-        .replaceAll('<','&lt;')
-        .replaceAll('>','&gt;')
-        .replaceAll('"','&quot;')
-        .replaceAll("'","&#039;");
-    }
+                <div class="w-1/2 flex flex-col border-l border-white/10 pl-8 relative overflow-hidden">
+                    <div x-show="isAnalyzing" class="absolute inset-0 bg-gradient-to-b from-transparent via-accent-gold/10 to-transparent h-[20%] animate-scan pointer-events-none z-0"></div>
 
-    function renderAll(){
-      updateConnBadge();
-      renderKPIs();
-      renderRows();
-      el.sisyImg.src = state.assets?.sisyphusDataUrl || DEFAULT_SISYPHUS_DATA_URL;
-    }
+                    <h2 class="font-serif text-lg text-gray-400 mb-4 tracking-widest">STRUCTURED INTEL</h2>
+                    
+                    <div class="space-y-4 relative z-10">
+                        <div>
+                            <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Detected Client / Entity</label>
+                            <input x-model="newTicket.client" type="text" class="hud-input w-full p-1 text-sm">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Ref ID (SR/PO)</label>
+                                <input x-model="newTicket.ref_id" type="text" class="hud-input w-full p-1 text-sm font-mono text-gray-400">
+                            </div>
+                            <div>
+                                <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Severity (Auto-Calc)</label>
+                                <input x-model="newTicket.severity" type="number" class="hud-input w-full p-1 text-sm text-accent-alert font-bold">
+                            </div>
+                        </div>
 
-    // -------------------------
-    // Editing / Events
-    // -------------------------
-    function touchEntry(id, patch){
-      const idx = state.entries.findIndex(e => e.id === id);
-      if (idx < 0) return;
+                        <div>
+                            <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Situation Briefing</label>
+                            <textarea x-model="newTicket.context" rows="3" class="hud-input w-full p-1 text-sm"></textarea>
+                        </div>
 
-      const prev = state.entries[idx];
-      const next = { ...prev, ...patch, updatedAt: nowIso() };
-      state.entries[idx] = next;
-      state.meta.updatedAt = nowIso();
-    }
+                        <div>
+                            <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Extraction (Phone/IBAN)</label>
+                            <input x-model="newTicket.meta_copy" type="text" class="hud-input w-full p-1 text-sm font-mono text-gray-400">
+                        </div>
 
-    function addEntry(partial = {}){
-      const entry = {
-        id: uid(),
-        title: partial.title || 'New Entry',
-        category: partial.category || 'Ops',
-        priority: partial.priority || 'P2',
-        owner: partial.owner || '',
-        status: partial.status || 'Open',
-        updatedAt: nowIso()
-      };
-      state.entries.unshift(entry);
-      state.meta.updatedAt = nowIso();
-      renderAll();
+                        <div>
+                            <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Detected Deep Link</label>
+                            <input x-model="newTicket.link" type="text" class="hud-input w-full p-1 text-xs text-blue-400 truncate">
+                        </div>
+                    </div>
 
-      // micro: animate row in
-      const row = el.rows.querySelector(`tr[data-id="${entry.id}"]`);
-      if (row) gsap.fromTo(row, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: .45, ease: 'power3.out' });
-    }
+                    <div class="flex justify-end gap-4 mt-auto pt-4">
+                        <button @click="showInput = false" class="px-4 py-2 font-mono text-[10px] text-gray-500 hover:text-white">DISCARD</button>
+                        <button @click="submitTicket()" class="px-6 py-2 bg-accent-gold text-black font-serif text-xs font-bold tracking-widest hover:bg-white transition-colors shadow-[0_0_20px_rgba(212,175,55,0.3)]">CONFIRM</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    function deleteEntry(id){
-      state.entries = state.entries.filter(e => e.id !== id);
-      state.meta.updatedAt = nowIso();
-      renderAll();
-    }
+    </main>
 
-    function seedDemo(){
-      state = defaultState();
-      state.entries.unshift(
-        { id: uid(), title: 'Rückruf: Kunde erwartet Update (Tonlage deeskalieren)', category: 'Customer', priority: 'P3', owner: 'CS', status: 'Open', updatedAt: nowIso() },
-        { id: uid(), title: 'Agent: Status-Update an Stakeholder (präzise, nicht lang)', category: 'Agent', priority: 'P2', owner: 'Lead', status: 'In Progress', updatedAt: nowIso() },
-        { id: uid(), title: 'Payment: Auszahlung blockiert → Ursache & ETA klären', category: 'Payment', priority: 'P1', owner: 'Finance', status: 'Blocked', updatedAt: nowIso() }
-      );
-      state.meta.updatedAt = nowIso();
-      renderAll();
-      setStatus('Seeded demo dataset.');
-    }
-
-    // Delegate table input changes
-    el.rows.addEventListener('input', (ev) => {
-      const tr = ev.target.closest('tr[data-id]');
-      if (!tr) return;
-      const id = tr.getAttribute('data-id');
-      const field = ev.target.getAttribute('data-field');
-      if (!field) return;
-
-      const patch = { [field]: ev.target.value };
-
-      // detect P3 completion cadence for Sisyphus trigger
-      if (field === 'status') {
-        const prev = state.entries.find(e => e.id === id);
-        const wasDone = prev?.status === 'Done';
-        const willDone = ev.target.value === 'Done';
-
-        touchEntry(id, patch);
-        renderKPIs(); // quick update
-
-        if (!wasDone && willDone && prev?.priority === 'P3') {
-          state.counters.completedP3 = (state.counters.completedP3 || 0) + 1;
-          const c = state.counters.completedP3;
-          if (c % 3 === 0) {
-            triggerSisyphus();
-          }
-        }
-
-        // keep rows fresh (updatedAt)
-        renderRows();
-        return;
-      }
-
-      touchEntry(id, patch);
-      renderKPIs();
-    });
-
-    el.rows.addEventListener('change', (ev) => {
-      // ensure select changes also touch updatedAt (redundant safety)
-      const tr = ev.target.closest('tr[data-id]');
-      if (!tr) return;
-      const id = tr.getAttribute('data-id');
-      const field = ev.target.getAttribute('data-field');
-      if (!field) return;
-      touchEntry(id, { [field]: ev.target.value });
-      renderAll();
-    });
-
-    el.rows.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('[data-action]');
-      if (!btn) return;
-      const tr = ev.target.closest('tr[data-id]');
-      if (!tr) return;
-      const id = tr.getAttribute('data-id');
-      const action = btn.getAttribute('data-action');
-
-      if (action === 'delete') {
-        gsap.to(tr, { opacity: 0, y: -6, duration: .22, ease: 'power2.in', onComplete: () => deleteEntry(id) });
-      }
-    });
-
-    // Engraving hover micro-interaction (subtle "nudge")
-    el.rows.addEventListener('mouseover', (ev) => {
-      const engr = ev.target.closest('.engraving');
-      if (!engr) return;
-      gsap.fromTo(engr, { rotate: -2, y: 0 }, { rotate: 2, y: -1, duration: .26, yoyo: true, repeat: 1, ease: 'power2.inOut' });
-      // tiny hint of rock movement without full stage
-      gsap.fromTo(el.sisyRock, { x: 0 }, { x: 6, duration: .22, yoyo: true, repeat: 1, ease: 'power2.inOut' });
-    });
-
-    // Buttons
-    el.btnAdd.addEventListener('click', () => addEntry());
-    el.btnSeed.addEventListener('click', () => seedDemo());
-
-    el.btnSync.addEventListener('click', async () => {
-      const loaded = await loadData();
-      state = sanitizeState(loaded);
-      state.meta.lastSyncAt = nowIso();
-      renderAll();
-      gsap.fromTo(el.panel, { y: 6, opacity: .92 }, { y: 0, opacity: 1, duration: .5, ease: 'power3.out' });
-    });
-
-    el.btnSave.addEventListener('click', async () => {
-      state.meta.updatedAt = nowIso();
-      const res = await saveData(state);
-      state.meta.lastSyncAt = nowIso();
-      renderAll();
-      if (res?.simulated) {
-        gsap.fromTo(el.btnSave, { boxShadow: '0 0 0 rgba(0,0,0,0)' }, { boxShadow: '0 0 0 8px rgba(201,168,106,.14)', duration: .35, yoyo: true, repeat: 1 });
-      } else {
-        gsap.fromTo(el.btnSave, { boxShadow: '0 0 0 rgba(0,0,0,0)' }, { boxShadow: '0 0 0 10px rgba(155,220,255,.14)', duration: .35, yoyo: true, repeat: 1 });
-      }
-    });
-
-    // Modal config
-    el.btnConfig.addEventListener('click', () => openModal());
-    el.btnCloseModal.addEventListener('click', () => closeModal());
-    el.btnApplyCfg.addEventListener('click', () => {
-      cfg.BIN_URL = el.cfgBinUrl.value.trim();
-      cfg.X_MASTER_KEY = el.cfgMasterKey.value.trim();
-      cfg.X_ACCESS_KEY = el.cfgAccessKey.value.trim();
-      saveCfg(cfg);
-      updateConnBadge();
-      closeModal();
-      setStatus('Config applied.');
-    });
-    el.btnClearCfg.addEventListener('click', () => {
-      Object.assign(cfg, DEFAULT_CFG);
-      saveCfg(cfg);
-      openModal(true);
-      updateConnBadge();
-      setStatus('Config reset to defaults.');
-    });
-
-    function openModal(prefillOnly = false){
-      el.modal.classList.remove('hidden');
-      el.cfgBinUrl.value = cfg.BIN_URL || '';
-      el.cfgMasterKey.value = cfg.X_MASTER_KEY || '';
-      el.cfgAccessKey.value = cfg.X_ACCESS_KEY || '';
-      if (!prefillOnly) gsap.fromTo(el.modal.querySelector('.glass'), { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: .32, ease: 'power3.out' });
-    }
-    function closeModal(){
-      el.modal.classList.add('hidden');
-    }
-
-    // Quick Add
-    window.addEventListener('keydown', (ev) => {
-      const isK = (ev.key || '').toLowerCase() === 'k';
-      const mod = ev.metaKey || ev.ctrlKey;
-      if (mod && isK) {
-        ev.preventDefault();
-        openQuick();
-      }
-      if (ev.key === 'Escape') {
-        closeQuick();
-        closeModal();
-      }
-    });
-
-    el.btnCloseQuick.addEventListener('click', () => closeQuick());
-    el.btnCreateQuick.addEventListener('click', () => {
-      const entry = quickEntryFromForm();
-      addEntry(entry);
-      closeQuick();
-    });
-    el.btnCreateQuickAndSave.addEventListener('click', async () => {
-      const entry = quickEntryFromForm();
-      addEntry(entry);
-      closeQuick();
-      await saveData(state);
-      state.meta.lastSyncAt = nowIso();
-      renderAll();
-    });
-
-    function openQuick(){
-      el.quick.classList.remove('hidden');
-      el.qaTitle.value = '';
-      el.qaOwner.value = '';
-      gsap.fromTo(el.quick.querySelector('.glass'), { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: .32, ease: 'power3.out' });
-      setTimeout(() => el.qaTitle.focus(), 60);
-    }
-    function closeQuick(){
-      el.quick.classList.add('hidden');
-    }
-    function quickEntryFromForm(){
-      return {
-        title: el.qaTitle.value.trim() || 'New Entry',
-        category: el.qaCategory.value,
-        priority: el.qaPriority.value,
-        owner: el.qaOwner.value.trim(),
-        status: 'Open'
-      };
-    }
-
-    // Sisyphus image upload
-    el.btnUploadSisy.addEventListener('click', () => el.fileSisy.click());
-    el.fileSisy.addEventListener('change', async (ev) => {
-      const file = ev.target.files?.[0];
-      if (!file) return;
-      const dataUrl = await readAsDataURL(file);
-      state.assets.sisyphusDataUrl = dataUrl;
-      state.meta.updatedAt = nowIso();
-      renderAll();
-      setStatus('Sisyphus image updated (stored in-state).');
-    });
-
-    function readAsDataURL(file){
-      return new Promise((resolve, reject) => {
-        const fr = new FileReader();
-        fr.onload = () => resolve(String(fr.result));
-        fr.onerror = reject;
-        fr.readAsDataURL(file);
-      });
-    }
-
-    function sanitizeState(s){
-      // minimal guardrails
-      const base = defaultState();
-      if (!s || typeof s !== 'object') return base;
-      return {
-        meta: { ...base.meta, ...(s.meta || {}) },
-        counters: { ...base.counters, ...(s.counters || {}) },
-        assets: { ...base.assets, ...(s.assets || {}) },
-        entries: Array.isArray(s.entries) ? s.entries : base.entries
-      };
-    }
-
-    // -------------------------
-    // Sisyphus Easter Egg
-    // -------------------------
-    let sisyTl = null;
-
-    function triggerSisyphus(){
-      const openEntries = (state.entries || []).filter(e => e.status !== 'Done');
-      const openCount = openEntries.length;
-
-      el.sisyCount.textContent = String(openCount);
-      el.sisyList.innerHTML = openEntries.slice(0, 3).map(e => `<div>• ${escapeHtml(e.title).slice(0, 42)}${e.title.length>42?'…':''}</div>`).join('');
-      if (openEntries.length > 3) el.sisyList.innerHTML += `<div class="text-white/45">… +${openEntries.length - 3} more</div>`;
-
-      if (sisyTl) sisyTl.kill();
-
-      // reset stage
-      gsap.set(el.sisyStage, { opacity: 0, y: 14 });
-      gsap.set(el.sisyPlaque, { opacity: 0, y: 6 });
-      gsap.set(el.sisyImg, { x: 0, y: 0, rotate: 0, scale: 1 });
-      gsap.set(el.sisyRock, { x: 0, y: 0, rotate: 0, scale: 1 });
-
-      // "uphill" path (hand-tuned)
-      const up = { x: 170, y: -54 };
-      const top = { x: 250, y: -92 };
-
-      sisyTl = gsap.timeline({ defaults: { ease: 'power2.inOut' } });
-      sisyTl
-        .to(el.sisyStage, { opacity: 1, y: 0, duration: .35, ease: 'power3.out' })
-        // push sequence
-        .to(el.sisyImg, { x: up.x * .55, y: up.y * .55, duration: 1.4 }, 0)
-        .to(el.sisyRock, { x: up.x, y: up.y, rotate: 360, duration: 1.4 }, 0)
-        .to(el.sisyImg, { x: top.x * .55, y: top.y * .55, duration: 1.15 }, '>-0.15')
-        .to(el.sisyRock, { x: top.x, y: top.y, rotate: 720, duration: 1.15 }, '<')
-        // plateau plaque
-        .to(el.sisyPlaque, { opacity: 1, y: 0, duration: .35, ease: 'power3.out' }, '>-0.05')
-        .to({}, { duration: 1.0 }) // let it breathe (watch-brand pacing)
-        // roll back (inevitable)
-        .to(el.sisyPlaque, { opacity: 0, y: 6, duration: .25 }, '>-0.05')
-        .to(el.sisyImg, { x: 0, y: 0, duration: 1.1, ease: 'power2.in' }, '<')
-        .to(el.sisyRock, { x: 0, y: 0, rotate: 1080, duration: 1.1, ease: 'power2.in' }, '<')
-        .to(el.sisyStage, { opacity: 0, y: 14, duration: .35, ease: 'power3.in' }, '>-0.05');
-    }
-
-    // -------------------------
-    // Intro Micro-UX
-    // -------------------------
-    function intro(){
-      gsap.fromTo(el.panel, { opacity: 0, y: 16, scale: .992 }, { opacity: 1, y: 0, scale: 1, duration: .85, ease: 'power3.out' });
-      gsap.fromTo('.dial', { opacity: 0 }, { opacity: 1, duration: 1.2, ease: 'power2.out' });
-    }
-
-    // -------------------------
-    // Three.js Background Scene
-    // -------------------------
-    let renderer, scene, camera, group, clock;
-    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
-
-    function initThree(){
-      const container = document.getElementById('bg');
-
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.05;
-      container.appendChild(renderer.domElement);
-
-      scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x05060a, 0.06);
-
-      camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 80);
-      camera.position.set(0, 0, 12);
-
-      // Environment (credible specular for glass)
-      const pmrem = new THREE.PMREMGenerator(renderer);
-      const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-      scene.environment = env;
-
-      // Lights
-      const key = new THREE.DirectionalLight(0x9bdcff, 1.1);
-      key.position.set(6, 8, 6);
-      scene.add(key);
-
-      const fill = new THREE.DirectionalLight(0xc9a86a, 0.55);
-      fill.position.set(-6, -2, 4);
-      scene.add(fill);
-
-      const hemi = new THREE.HemisphereLight(0x9bdcff, 0x05060a, 0.35);
-      scene.add(hemi);
-
-      group = new THREE.Group();
-      scene.add(group);
-
-      const glassMat = new THREE.MeshPhysicalMaterial({
-        color: new THREE.Color(0.95, 0.98, 1.0),
-        metalness: 0.08,
-        roughness: 0.12,
-        transmission: 1.0,
-        thickness: 1.2,
-        ior: 1.52,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.08,
-        specularIntensity: 1.0,
-        envMapIntensity: 1.2
-      });
-
-      const geo = [
-        new THREE.IcosahedronGeometry(1.15, 0),
-        new THREE.TorusKnotGeometry(0.72, 0.22, 140, 18),
-        new THREE.OctahedronGeometry(1.0, 0),
-        new THREE.DodecahedronGeometry(1.1, 0)
-      ];
-
-      const count = 12;
-      for (let i = 0; i < count; i++){
-        const g = geo[i % geo.length];
-        const m = glassMat.clone();
-        // slight tint variation
-        const t = i / count;
-        m.color = new THREE.Color().setHSL(0.56 + 0.08 * Math.sin(t * Math.PI * 2), 0.35, 0.92);
-        m.roughness = 0.10 + 0.10 * Math.random();
-        m.thickness = 0.8 + 1.4 * Math.random();
-
-        const mesh = new THREE.Mesh(g, m);
-        mesh.position.set(
-          (Math.random() - 0.5) * 14,
-          (Math.random() - 0.5) * 8,
-          (Math.random() - 0.5) * 8
-        );
-        mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-        mesh.userData = {
-          base: mesh.position.clone(),
-          spin: new THREE.Vector3((Math.random() - 0.5) * 0.25, (Math.random() - 0.5) * 0.25, (Math.random() - 0.5) * 0.25),
-          phase: Math.random() * Math.PI * 2,
-          amp: 0.35 + Math.random() * 0.55
+    <script>
+        // --- CONFIG ---
+        // Fügen Sie hier Ihre JSONBIN Keys ein für Cloud Sync
+        const CLOUD_CONFIG = {
+            BIN_ID: '', 
+            API_KEY: '' 
         };
-        group.add(mesh);
-      }
 
-      clock = new THREE.Clock();
+        function dashboard() {
+            return {
+                tickets: [],
+                isLoading: false,
+                isAnalyzing: false,
+                showInput: false,
+                connectionStatus: 'LOCAL',
+                rawData: '',
+                
+                newTicket: { client: '', context: '', severity: 5, action: 'Review', link: '', meta_copy: '', ref_id: '' },
 
-      window.addEventListener('pointermove', (ev) => {
-        const nx = (ev.clientX / window.innerWidth) * 2 - 1;
-        const ny = (ev.clientY / window.innerHeight) * 2 - 1;
-        mouse.tx = nx;
-        mouse.ty = ny;
-      }, { passive: true });
+                async init() {
+                    if(CLOUD_CONFIG.BIN_ID) {
+                        this.connectionStatus = 'LIVE';
+                        await this.loadFromCloud();
+                    } else {
+                        const local = localStorage.getItem('chronext_data_v3');
+                        if(local) this.tickets = JSON.parse(local);
+                    }
+                    this.initVisuals();
+                },
 
-      window.addEventListener('resize', onResize, { passive: true });
+                // --- THE NEURAL PARSER ENGINE ---
+                analyzeData() {
+                    this.isAnalyzing = true;
+                    
+                    // Simulating processing delay for effect
+                    setTimeout(() => {
+                        const text = this.rawData;
+                        let severity = 4; // Base Priority
+                        let action = "General";
+                        
+                        // 1. KEYWORD EXTRACTION & SENTIMENT
+                        const urgentWords = ['dringend', 'asap', 'sofort', 'wichtig', 'urgent'];
+                        const criticalWords = ['anwalt', 'polizei', 'betrug', 'fraud', 'lawyer', 'droht', 'frist'];
+                        const moneyWords = ['auszahlung', 'geld', 'iban', 'rechnung', 'commission'];
+                        const logisticsWords = ['dhl', 'versand', 'retoure', 'rücksendung', 'abholung', 'driver'];
 
-      animate();
-    }
+                        if (urgentWords.some(w => text.toLowerCase().includes(w))) { severity += 2; action = "Urgent"; }
+                        if (moneyWords.some(w => text.toLowerCase().includes(w))) { severity += 1; action = "Finance"; }
+                        if (logisticsWords.some(w => text.toLowerCase().includes(w))) { severity += 1; action = "Logistics"; }
+                        if (criticalWords.some(w => text.toLowerCase().includes(w))) { severity = 10; action = "Legal/Risk"; }
+                        
+                        // Cap Severity
+                        if(severity > 10) severity = 10;
 
-    function onResize(){
-      if (!renderer || !camera) return;
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    }
+                        // 2. PATTERN RECOGNITION (Regex)
+                        // Find SR or PO Numbers
+                        const idMatch = text.match(/(SR\d+|PO\d+|#\d+)/i);
+                        const ref_id = idMatch ? idMatch[0].toUpperCase() : '';
 
-    function animate(){
-      const dt = clock.getDelta();
-      const t = clock.elapsedTime;
+                        // Find Links (Freshdesk/Freshworks/Operations)
+                        const linkMatch = text.match(/(https?:\/\/[^\s]+)/);
+                        const link = linkMatch ? linkMatch[0] : '';
 
-      // viscous parallax (lerp, not twitch)
-      mouse.x += (mouse.tx - mouse.x) * (1 - Math.pow(0.001, dt));
-      mouse.y += (mouse.ty - mouse.y) * (1 - Math.pow(0.001, dt));
+                        // Find Phone Numbers (German formats mostly)
+                        const phoneMatch = text.match(/(\+49|0049|01[567])[\d\s\-/]+/);
+                        // Find IBAN
+                        const ibanMatch = text.match(/DE\d{20,}/i);
+                        
+                        let meta = '';
+                        if(phoneMatch) meta = phoneMatch[0].replace(/\s/g, '');
+                        if(ibanMatch) meta = ibanMatch[0];
 
-      camera.position.x = mouse.x * 0.9;
-      camera.position.y = -mouse.y * 0.6;
-      camera.lookAt(0, 0, 0);
+                        // 3. NAME EXTRACTION (Heuristic: Look for "Herr X" or "Frau Y")
+                        const nameMatch = text.match(/(Herr|Frau|Mr\.|Mrs\.)\s+([A-ZÄÖÜ][a-zäöü]+)/);
+                        let client = nameMatch ? `${nameMatch[1]} ${nameMatch[2]}` : 'Unknown Client';
+                        
+                        // If no name found, try to use first few words
+                        if(client === 'Unknown Client' && text.length > 5) {
+                            client = "Inbound Query"; 
+                        }
 
-      // float & slow spin
-      group.children.forEach((m, i) => {
-        const ud = m.userData;
-        const wobble = Math.sin(t * 0.65 + ud.phase) * ud.amp;
-        m.position.x = ud.base.x + Math.sin(t * 0.35 + i) * 0.25;
-        m.position.y = ud.base.y + wobble * 0.18;
-        m.position.z = ud.base.z + Math.cos(t * 0.28 + i) * 0.22;
+                        // 4. POPULATE FORM
+                        this.newTicket = {
+                            client: client,
+                            context: text.substring(0, 100) + (text.length > 100 ? '...' : ''), // Preview text
+                            severity: severity,
+                            action: action,
+                            link: link,
+                            meta_copy: meta,
+                            ref_id: ref_id
+                        };
 
-        m.rotation.x += ud.spin.x * dt;
-        m.rotation.y += ud.spin.y * dt;
-        m.rotation.z += ud.spin.z * dt;
-      });
+                        this.isAnalyzing = false;
+                    }, 800);
+                },
 
-      renderer.render(scene, camera);
-      requestAnimationFrame(animate);
-    }
+                // --- DATA OPS ---
+                async loadFromCloud() {
+                    try {
+                        const res = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}/latest`, {
+                            headers: { 'X-Master-Key': CLOUD_CONFIG.API_KEY }
+                        });
+                        const data = await res.json();
+                        this.tickets = data.record;
+                    } catch(e) { console.error(e); }
+                },
 
-    // -------------------------
-    // Boot
-    // -------------------------
-    function boot(){
-      state = sanitizeState(state);
-      renderAll();
-      intro();
-      initThree();
-      setStatus('Ready.');
+                async saveToCloud() {
+                    if(this.connectionStatus === 'LOCAL') {
+                        localStorage.setItem('chronext_data_v3', JSON.stringify(this.tickets));
+                        return;
+                    }
+                    await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-Master-Key': CLOUD_CONFIG.API_KEY },
+                        body: JSON.stringify(this.tickets)
+                    });
+                },
 
-      // Optional: preload Sisyphus stage image
-      el.sisyImg.src = state.assets?.sisyphusDataUrl || DEFAULT_SISYPHUS_DATA_URL;
-    }
+                async submitTicket() {
+                    const entry = { id: Date.now(), ...this.newTicket, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+                    this.tickets.unshift(entry);
+                    this.showInput = false;
+                    this.rawData = ''; 
+                    await this.saveToCloud();
+                },
 
-    boot();
-  </script>
+                async archive(id) {
+                    if(!confirm("Resolve Case?")) return;
+                    this.tickets = this.tickets.filter(t => t.id !== id);
+                    await this.saveToCloud();
+                },
+                
+                toggleModal() { this.showInput = true; this.newTicket = {}; this.rawData = ''; },
+                copy(t) { navigator.clipboard.writeText(t); },
+
+                // --- VISUAL ENGINE ---
+                initVisuals() {
+                    const scene = new THREE.Scene();
+                    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                    const renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    document.getElementById('canvas-container').appendChild(renderer.domElement);
+                    
+                    const geometry = new THREE.IcosahedronGeometry(10, 1);
+                    const material = new THREE.MeshBasicMaterial({color:0x222222, wireframe:true, transparent:true, opacity:0.1});
+                    const sphere = new THREE.Mesh(geometry, material);
+                    scene.add(sphere);
+                    camera.position.z = 20;
+                    
+                    // Floating Particles
+                    const pGeo = new THREE.BufferGeometry();
+                    const pCount = 600;
+                    const pArr = new Float32Array(pCount*3);
+                    for(let i=0;i<pCount*3;i++) pArr[i] = (Math.random()-0.5)*60;
+                    pGeo.setAttribute('position', new THREE.BufferAttribute(pArr,3));
+                    const pMat = new THREE.PointsMaterial({size:0.04, color:0xD4AF37});
+                    const pMesh = new THREE.Points(pGeo, pMat);
+                    scene.add(pMesh);
+
+                    function animate() {
+                        requestAnimationFrame(animate);
+                        sphere.rotation.y += 0.001;
+                        pMesh.rotation.y -= 0.0005;
+                        renderer.render(scene, camera);
+                    }
+                    animate();
+                }
+            }
+        }
+    </script>
 </body>
 </html>
