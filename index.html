@@ -1,48 +1,47 @@
 <!DOCTYPE html>
-<html lang="en" class="antialiased">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHRONEXT // EVENT HORIZON</title>
+    <title>CHRONEXT // SINGULARITY</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@300;500;700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <script>
-        // --- HIER IHRE DATEN EINFÜGEN ---
+        // --- CONFIGURATION ---
         const CLOUD_CONFIG = {
-            BIN_ID: '', // Ihre Bin ID
-            API_KEY: '' // Ihr Master Key
+            BIN_ID: '', // EINFÜGEN
+            API_KEY: '' // EINFÜGEN
         };
 
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'void': '#030304',
-                        'accent-gold': '#D4AF37',
-                        'accent-alert': '#FF3333',
-                        'accent-holo': 'rgba(212, 175, 55, 0.1)',
+                        'void': '#020203',
+                        'gold': '#E6C200',
+                        'gold-dim': 'rgba(230, 194, 0, 0.1)',
+                        'alert': '#FF2A2A',
+                        'glass': 'rgba(255, 255, 255, 0.03)'
                     },
                     fontFamily: {
-                        'serif': ['Cinzel', 'serif'],
-                        'sans': ['Inter', 'sans-serif'],
+                        'display': ['Syncopate', 'sans-serif'],
+                        'tech': ['Rajdhani', 'sans-serif'],
                         'mono': ['Space Mono', 'monospace'],
-                    },
-                    animation: {
-                        'scanline': 'scanline 8s linear infinite',
-                        'glitch': 'glitch 1s linear infinite',
-                    },
-                    keyframes: {
-                        scanline: {
-                            '0%': { transform: 'translateY(-100%)' },
-                            '100%': { transform: 'translateY(100%)' }
-                        }
                     }
                 }
             }
@@ -50,365 +49,302 @@
     </script>
 
     <style>
-        body { margin: 0; overflow: hidden; background-color: #030304; color: #E5E4E2; }
+        body { margin: 0; overflow: hidden; background: #020203; color: #fff; }
         
-        /* CRT / HOLOGRAPHIC EFFECTS */
-        .scanlines {
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
-            background-size: 100% 4px;
-            position: fixed; pointer-events: none; inset: 0; z-index: 50; opacity: 0.15;
-        }
-        .vignette {
-            position: fixed; inset: 0; z-index: 40; pointer-events: none;
-            background: radial-gradient(circle, transparent 60%, black 100%);
+        /* LUXURY UI ELEMENTS */
+        .hud-border {
+            position: absolute; pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(to bottom, rgba(255,255,255,0.05) 0%, transparent 100%);
         }
         
-        /* UI GLASS */
-        .glass-hud {
-            background: rgba(10, 10, 12, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(212, 175, 55, 0.15);
-            box-shadow: 0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.5);
-            position: relative;
+        .ticket-card {
+            background: linear-gradient(90deg, rgba(0,0,0,0.4) 0%, rgba(20,20,20,0.6) 100%);
+            backdrop-filter: blur(4px);
+            border-left: 2px solid rgba(255,255,255,0.1);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
         }
-        
-        /* DECORATIVE CORNERS */
-        .corner-bracket {
-            position: absolute; width: 20px; height: 20px; border-color: #D4AF37; opacity: 0.5; transition: all 0.5s;
+        .ticket-card:hover {
+            background: linear-gradient(90deg, rgba(230,194,0,0.05) 0%, rgba(0,0,0,0.8) 100%);
+            border-left-color: #E6C200;
+            transform: translateX(10px) scale(1.02);
+            box-shadow: -20px 0 40px rgba(0,0,0,0.5);
+            z-index: 10;
         }
-        .glass-hud:hover .corner-bracket { opacity: 1; width: 30px; height: 30px; box-shadow: 0 0 10px #D4AF37; }
-        .c-tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
-        .c-tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
-        .c-bl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
-        .c-br { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
 
-        /* SCROLLBAR */
-        .scroller::-webkit-scrollbar { width: 2px; }
-        .scroller::-webkit-scrollbar-thumb { background: #D4AF37; }
-        .scroller::-webkit-scrollbar-track { background: transparent; }
+        /* SCROLLBAR HIDDEN BUT FUNCTIONAL */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* TEXT INPUTS */
-        textarea, input { 
-            background: rgba(0,0,0,0.6); color: #D4AF37; border: 1px solid rgba(255,255,255,0.1); 
-            font-family: 'Space Mono', monospace;
+        /* INTRO OVERLAY */
+        #intro-curtain {
+            background: #000; z-index: 100;
         }
-        textarea:focus, input:focus { outline: none; border-color: #D4AF37; box-shadow: 0 0 15px rgba(212,175,55,0.2); }
+        
+        /* GLITCH TEXT EFFECT */
+        .glitch-hover:hover {
+            animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+            color: #E6C200;
+        }
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+
+        .modal-blur { backdrop-filter: blur(20px); }
     </style>
 </head>
 
-<body x-data="sisyphus()">
+<body x-data="singularity()" class="font-tech">
 
-    <div id="canvas-container" class="fixed inset-0 z-0"></div>
-    <div class="scanlines"></div>
-    <div class="vignette"></div>
+    <div id="webgl-container" class="fixed inset-0 z-0"></div>
 
-    <main class="relative z-10 w-full h-screen flex flex-col p-6 lg:p-10 transition-all duration-1000"
-          :class="tickets.length === 0 ? 'saturate-150 brightness-110' : ''">
+    <div id="intro-curtain" class="fixed inset-0 flex items-center justify-center pointer-events-none">
+        <div class="text-center">
+            <h1 class="font-display text-4xl tracking-[0.5em] text-gold opacity-0 intro-text">SINGULARITY</h1>
+            <div class="h-[1px] w-0 bg-white mx-auto mt-4 intro-line"></div>
+        </div>
+    </div>
+
+    <main class="relative z-10 w-full h-screen flex p-8 gap-8 opacity-0 main-interface">
         
-        <header class="flex justify-between items-end mb-6 select-none">
-            <div class="relative pl-4 border-l-2 border-accent-gold/50">
-                <div class="flex items-center gap-3 mb-1">
-                    <div class="w-2 h-2 rounded-full animate-pulse" 
-                         :class="connectionStatus === 'LIVE' ? 'bg-green-500 shadow-[0_0_10px_#0f0]' : 'bg-red-500'"></div>
-                    <p class="font-mono text-[10px] tracking-[0.3em] text-gray-500 uppercase">
-                        System Status: <span x-text="connectionStatus"></span>
-                    </p>
+        <div class="w-2/3 h-full flex flex-col relative">
+            <header class="flex justify-between items-end mb-8 border-b border-white/10 pb-4">
+                <div>
+                    <div class="flex items-center gap-2 text-gold/50 font-mono text-xs mb-1">
+                        <div class="w-1.5 h-1.5 bg-gold rounded-full animate-pulse"></div>
+                        <span x-text="connectionStatus"></span> // <span x-text="tickets.length + ' ACTIVE ENTITIES'"></span>
+                    </div>
+                    <h1 class="font-display text-3xl tracking-widest text-white">CHRONEXT<span class="text-gold">_OPS</span></h1>
                 </div>
-                <h1 class="font-serif text-4xl text-white tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
-                    CHRONEXT <span class="text-accent-gold text-lg align-top">.OPS</span>
-                </h1>
-            </div>
-
-            <div class="flex items-center gap-4">
-                <div class="text-right mr-4" x-show="tickets.length > 0">
-                    <div class="text-[9px] font-mono text-gray-500 tracking-widest uppercase">Gravity Load</div>
-                    <div class="text-xl font-serif text-accent-gold" x-text="tickets.length + ' KG'"></div>
+                <div class="flex gap-4">
+                    <button @click="openModal()" class="px-6 py-2 border border-white/20 hover:border-gold hover:text-gold hover:bg-gold/5 transition-all font-mono text-xs tracking-widest uppercase glitch-hover">
+                        [ + ] INJECT DATA
+                    </button>
+                    <button @click="syncData()" class="w-10 h-10 border border-white/20 flex items-center justify-center hover:bg-white/10 transition-all">
+                         <svg class="w-4 h-4 text-white" :class="isLoading ? 'animate-spin text-gold' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path><path d="M21 12v9"></path></svg>
+                    </button>
                 </div>
+            </header>
 
-                <button @click="openModal()" class="group relative px-6 py-3 bg-black/40 border border-white/10 hover:border-accent-gold transition-all overflow-hidden">
-                    <div class="absolute inset-0 bg-accent-gold/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                    <span class="relative font-mono text-xs tracking-widest text-accent-gold group-hover:text-white">+ INJECT INTEL</span>
-                </button>
-                
-                <button @click="syncData()" class="px-4 py-3 border border-white/10 bg-black/40 hover:bg-white/5 transition-colors">
-                    <svg class="w-4 h-4 text-gray-400" :class="{'animate-spin text-accent-gold': isLoading}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                </button>
-            </div>
-        </header>
-
-        <div class="flex-1 glass-hud flex flex-col overflow-hidden relative group-hud">
-            <div class="corner-bracket c-tl"></div>
-            <div class="corner-bracket c-tr"></div>
-            <div class="corner-bracket c-bl"></div>
-            <div class="corner-bracket c-br"></div>
-
-            <div class="grid grid-cols-12 gap-2 p-4 bg-black/60 font-mono text-[9px] tracking-[0.2em] text-gray-500 uppercase border-b border-white/5 backdrop-blur-md sticky top-0 z-20">
-                <div class="col-span-1 text-center">Grav</div>
-                <div class="col-span-2">Entity ID</div>
-                <div class="col-span-5">Data Stream</div>
-                <div class="col-span-2">Protocol</div>
-                <div class="col-span-2 text-right">Uplink</div>
-            </div>
-
-            <div class="scroller overflow-y-auto flex-1 p-2 space-y-2" id="ticket-container">
-                <template x-for="ticket in sortedTickets" :key="ticket.id">
-                    <div :id="'ticket-'+ticket.id" class="grid grid-cols-12 gap-4 p-4 items-center border border-white/5 bg-black/20 hover:bg-white/5 hover:border-accent-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.1)] transition-all duration-300 group relative">
+            <div class="flex-1 overflow-y-auto no-scrollbar pr-4 space-y-3 relative perspective-container">
+                <template x-for="(ticket, index) in sortedTickets" :key="ticket.id">
+                    <div :id="'ticket-'+ticket.id" 
+                         class="ticket-card p-5 relative group cursor-default"
+                         @mouseenter="hoverTicket(ticket.severity)"
+                         @mouseleave="resetEnvironment()">
                         
-                        <div class="col-span-1 flex justify-center">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-serif font-bold border relative overflow-hidden"
-                                 :class="{
-                                     'border-accent-alert text-accent-alert shadow-[0_0_15px_#ff3333]': ticket.severity >= 9,
-                                     'border-orange-500 text-orange-500': ticket.severity >= 7 && ticket.severity < 9,
-                                     'border-accent-gold text-accent-gold': ticket.severity < 7
-                                 }">
-                                <div class="absolute inset-0 opacity-20 animate-pulse" :class="ticket.severity >=9 ? 'bg-accent-alert' : 'bg-transparent'"></div>
-                                <span class="relative z-10" x-text="ticket.severity"></span>
+                        <div class="absolute left-0 top-0 bottom-0 w-[2px]" 
+                             :class="ticket.severity >= 9 ? 'bg-alert shadow-[0_0_15px_#f00]' : (ticket.severity >= 6 ? 'bg-gold shadow-[0_0_10px_#fd0]' : 'bg-gray-500')"></div>
+
+                        <div class="flex justify-between items-start">
+                            <div class="w-3/4">
+                                <div class="flex items-center gap-3 mb-1">
+                                    <span class="font-display text-lg font-bold" :class="ticket.severity>=9 ? 'text-alert' : 'text-white'" x-text="ticket.severity"></span>
+                                    <span class="font-mono text-xs text-gray-500" x-text="ticket.ref_id"></span>
+                                    <span class="font-bold tracking-wide text-white" x-text="ticket.client"></span>
+                                </div>
+                                <p class="text-gray-400 text-sm font-light leading-relaxed font-sans opacity-80 group-hover:opacity-100 transition-opacity" x-text="ticket.context"></p>
+                                
+                                <div class="flex flex-wrap gap-2 mt-3">
+                                    <span class="text-[10px] font-mono border border-white/10 px-2 py-0.5 text-gray-400 uppercase" x-text="ticket.action"></span>
+                                    <template x-if="ticket.wait_time_alert">
+                                        <span class="text-[10px] font-mono border border-alert/30 text-alert px-2 py-0.5 uppercase animate-pulse" x-text="ticket.wait_time_alert"></span>
+                                    </template>
+                                    <template x-if="ticket.meta_copy">
+                                        <button @click="copy(ticket.meta_copy)" class="text-[10px] font-mono bg-white/5 hover:bg-gold hover:text-black px-2 py-0.5 transition-colors uppercase">
+                                            COPY DATA
+                                        </button>
+                                    </template>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="col-span-2 truncate">
-                            <div class="font-sans font-bold text-gray-200 tracking-wide text-sm group-hover:text-white" x-text="ticket.client"></div>
-                            <div class="font-mono text-[9px] text-accent-gold/60" x-text="ticket.ref_id || 'UNKNOWN ID'"></div>
-                        </div>
-
-                        <div class="col-span-5 pr-2">
-                            <p class="font-sans text-xs text-gray-400 leading-relaxed line-clamp-2 group-hover:line-clamp-none group-hover:text-gray-300 transition-all" x-text="ticket.context"></p>
-                            
-                            <div class="flex gap-2 mt-2">
-                                <template x-if="ticket.wait_time_alert">
-                                    <span class="px-2 py-0.5 bg-orange-900/40 text-orange-400 border border-orange-500/30 text-[9px] font-mono uppercase tracking-wider animate-pulse" x-text="ticket.wait_time_alert"></span>
+                            <div class="flex flex-col gap-2 items-end opacity-20 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
+                                <template x-if="ticket.link">
+                                    <a :href="ticket.link" target="_blank" class="text-[10px] font-mono hover:text-gold tracking-widest border-b border-transparent hover:border-gold">OPEN LINK ↗</a>
                                 </template>
-                                <template x-if="ticket.meta_copy">
-                                    <button @click="copy(ticket.meta_copy)" class="px-2 py-0.5 bg-white/5 hover:bg-accent-gold hover:text-black border border-white/10 text-[9px] font-mono text-gray-400 transition-colors uppercase flex items-center gap-2">
-                                        COPY DATA <span class="opacity-50">⎘</span>
-                                    </button>
-                                </template>
+                                <button @click="archive(ticket.id)" class="text-[10px] font-mono hover:text-alert tracking-widest border-b border-transparent hover:border-alert">RESOLVE_CASE</button>
                             </div>
-                        </div>
-
-                        <div class="col-span-2">
-                            <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-sm">
-                                <div class="w-1.5 h-1.5 rounded-full" :class="ticket.severity > 8 ? 'bg-red-500 animate-ping' : 'bg-green-500'"></div>
-                                <span class="text-[9px] uppercase tracking-widest text-gray-300" x-text="ticket.action"></span>
-                            </div>
-                        </div>
-
-                        <div class="col-span-2 flex justify-end items-center gap-3">
-                            <template x-if="ticket.link">
-                                <a :href="ticket.link" target="_blank" class="w-8 h-8 flex items-center justify-center border border-white/20 hover:border-accent-gold hover:bg-accent-gold hover:text-black transition-all rounded-sm group-btn">
-                                    <svg class="w-3 h-3 transform group-btn-hover:rotate-45 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                </a>
-                            </template>
-                            <button @click="archive(ticket.id)" class="w-8 h-8 flex items-center justify-center border border-white/10 hover:border-red-500 hover:bg-red-500/20 text-gray-500 hover:text-red-500 transition-all rounded-sm">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            </button>
                         </div>
                     </div>
                 </template>
-                
-                <div x-show="tickets.length === 0" class="h-64 flex flex-col items-center justify-center text-accent-gold/50 space-y-4">
-                    <div class="text-4xl animate-bounce opacity-50">❖</div>
-                    <p class="font-serif tracking-[0.5em] text-sm">SINGULARITY ACHIEVED</p>
-                    <p class="font-mono text-[9px] text-gray-600">WAITING FOR NEW ENTROPY...</p>
+
+                <div x-show="tickets.length === 0" class="h-full flex flex-col items-center justify-center">
+                    <h2 class="font-display text-2xl text-gold animate-pulse">SYSTEM STABLE</h2>
+                    <p class="font-mono text-xs text-gray-600 mt-2">NO ANOMALIES DETECTED</p>
                 </div>
             </div>
         </div>
 
-        <div class="mt-4 flex justify-between text-[9px] font-mono text-gray-600 uppercase tracking-widest">
-            <span>SISYPHUS PROTOCOL v5.0</span>
-            <span x-text="'ORBITAL TIME: ' + new Date().toLocaleTimeString()"></span>
-        </div>
-
-        <div x-show="showModal" 
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100"
-             class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-8">
-            
-            <div class="w-full max-w-6xl h-[85vh] border border-accent-gold/20 flex shadow-[0_0_100px_rgba(0,0,0,1)] relative bg-[#050505]">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent-gold to-transparent opacity-50"></div>
-
-                <div class="w-1/2 p-8 border-r border-white/10 flex flex-col">
-                    <h2 class="font-serif text-2xl text-accent-gold mb-2 tracking-widest">RAW DATA INJECTION</h2>
-                    <p class="font-mono text-[10px] text-gray-500 mb-6">PASTE UNSTRUCTURED EMAIL/SLACK DUMPS. AI WILL PARSE SEVERITY & TIME-DELAYS.</p>
-                    
-                    <textarea x-model="rawData" class="flex-1 p-4 text-xs leading-relaxed resize-none mb-4 focus:shadow-[0_0_30px_rgba(212,175,55,0.1)] transition-shadow" placeholder="Paste communication stream here..."></textarea>
-                    
-                    <div class="flex gap-4">
-                        <button @click="showModal = false" class="px-6 py-3 font-mono text-xs border border-white/10 text-gray-500 hover:text-white transition-colors">ABORT</button>
-                        <button @click="processInput()" class="flex-1 px-6 py-3 bg-accent-gold/10 border border-accent-gold text-accent-gold font-bold font-mono text-xs tracking-widest hover:bg-accent-gold hover:text-black transition-all">
-                            <span x-show="!isProcessing">INITIALIZE PARSING SEQUENCE</span>
-                            <span x-show="isProcessing" class="animate-pulse">DECODING...</span>
-                        </button>
-                    </div>
+        <div class="w-1/3 h-full flex flex-col justify-end pointer-events-none pb-8 pl-8 border-l border-white/5">
+            <div class="glass-hud p-6 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-2 opacity-50">
+                    <svg class="w-8 h-8 text-gold animate-[spin_10s_linear_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke-width="1" stroke-dasharray="4 4"></path></svg>
                 </div>
-
-                <div class="w-1/2 p-8 flex flex-col bg-[#08080a]">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="font-serif text-xl text-gray-400 tracking-widest">DECODED OBJECTS</h2>
-                        <span class="font-mono text-accent-gold text-xs border border-accent-gold/30 px-2 py-1" x-text="detectedCases.length + ' FOUND'"></span>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto space-y-3 pr-2 scroller">
-                        <template x-for="(c, index) in detectedCases" :key="index">
-                            <div class="p-4 border border-white/10 bg-white/5 hover:border-accent-gold/50 transition-colors relative group">
-                                <div class="flex justify-between mb-2">
-                                    <span class="font-serif font-bold text-lg" :class="c.severity >= 9 ? 'text-red-500' : 'text-accent-gold'" x-text="c.severity"></span>
-                                    <span class="font-mono text-[9px] text-gray-500 uppercase" x-text="c.action"></span>
-                                </div>
-                                <input x-model="c.client" class="w-full bg-transparent border-b border-white/10 mb-2 font-sans font-bold text-sm focus:border-accent-gold">
-                                <textarea x-model="c.context" rows="2" class="w-full bg-transparent border-none text-[10px] text-gray-400 resize-none p-0 focus:ring-0"></textarea>
-                                
-                                <div x-show="c.wait_time_alert" class="mt-2 flex items-center gap-2 text-[9px] text-orange-500 font-mono border border-orange-500/20 px-2 py-1 inline-block">
-                                    <span class="w-1 h-1 bg-orange-500 rounded-full animate-ping"></span>
-                                    <span x-text="c.wait_time_alert"></span>
-                                </div>
-
-                                <button @click="detectedCases.splice(index, 1)" class="absolute top-2 right-2 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
-                            </div>
-                        </template>
-                        
-                        <div x-show="detectedCases.length === 0" class="h-full flex items-center justify-center text-gray-700 font-mono text-[10px]">
-                            AWAITING INPUT DATA...
+                <h3 class="font-display text-xl text-white mb-2">GRAVITY WELL</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-[10px] font-mono text-gray-500 mb-1">
+                            <span>STRESS_LEVEL</span>
+                            <span x-text="calculateStress() + '%'"></span>
+                        </div>
+                        <div class="w-full h-1 bg-gray-800">
+                            <div class="h-full bg-gradient-to-r from-gold to-alert transition-all duration-1000" :style="'width: ' + calculateStress() + '%'"></div>
                         </div>
                     </div>
-
-                    <button x-show="detectedCases.length > 0" @click="confirmImport()" class="mt-4 w-full py-4 bg-accent-gold text-black font-serif font-bold tracking-[0.2em] hover:bg-white transition-colors shadow-[0_0_20px_rgba(212,175,55,0.4)]">
-                        COMMIT TO DATABASE
-                    </button>
+                    <div class="text-xs text-gray-400 font-light leading-relaxed">
+                        <span class="text-gold font-mono">[SISYPHUS_PROTOCOL]</span>
+                        <span x-show="tickets.length > 0">Active anomalies detected. Temporal distortions analyzed. Suggest immediate resolution of Priority 10 items.</span>
+                        <span x-show="tickets.length === 0">Singularity achieved. Event horizon stable. Waiting for input stream.</span>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
+    <div x-show="showModal" 
+         x-transition.opacity.duration.500ms
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 modal-blur">
+        
+        <div class="w-full max-w-5xl bg-black border border-white/10 shadow-[0_0_50px_rgba(230,194,0,0.1)] flex h-[70vh]">
+            <div class="w-1/2 p-8 border-r border-white/10 flex flex-col">
+                <h2 class="font-display text-xl text-gold mb-4">DATA STREAM INPUT</h2>
+                <textarea x-model="rawData" class="flex-1 bg-[#050505] border border-white/10 p-4 text-xs font-mono text-gold focus:border-gold outline-none resize-none leading-relaxed" placeholder="PASTE EMAIL / SLACK / TICKET DATA HERE..."></textarea>
+                <div class="flex gap-4 mt-4">
+                    <button @click="showModal = false" class="px-6 py-3 font-mono text-xs border border-white/10 text-gray-500 hover:text-white">ABORT</button>
+                    <button @click="processInput()" class="flex-1 px-6 py-3 bg-white/5 border border-gold text-gold font-display text-xs tracking-widest hover:bg-gold hover:text-black transition-all">
+                        <span x-show="!isProcessing">ANALYZE</span>
+                        <span x-show="isProcessing" class="animate-pulse">PROCESSING...</span>
+                    </button>
+                </div>
+            </div>
+            <div class="w-1/2 p-8 bg-[#080808] flex flex-col">
+                <h2 class="font-display text-xl text-gray-500 mb-4 flex justify-between">
+                    <span>DECODED</span>
+                    <span x-text="detectedCases.length" class="text-white"></span>
+                </h2>
+                <div class="flex-1 overflow-y-auto no-scrollbar space-y-2">
+                    <template x-for="(c, i) in detectedCases" :key="i">
+                        <div class="p-3 border border-white/5 bg-white/5 relative group hover:border-gold/30 transition-colors">
+                            <div class="flex justify-between mb-1">
+                                <span class="font-bold text-gold" x-text="c.severity"></span>
+                                <span class="text-[9px] font-mono text-gray-400" x-text="c.action"></span>
+                            </div>
+                            <input x-model="c.client" class="bg-transparent text-white font-bold text-sm w-full outline-none mb-1">
+                            <div class="text-[10px] text-gray-500 truncate" x-text="c.context"></div>
+                            <div x-show="c.wait_time_alert" class="text-[9px] text-alert mt-1 font-mono uppercase" x-text="c.wait_time_alert"></div>
+                            <button @click="detectedCases.splice(i, 1)" class="absolute top-2 right-2 text-gray-600 hover:text-alert opacity-0 group-hover:opacity-100">✕</button>
+                        </div>
+                    </template>
+                </div>
+                <button x-show="detectedCases.length > 0" @click="confirmImport()" class="mt-4 w-full py-3 bg-gold text-black font-display font-bold hover:bg-white transition-colors">
+                    COMMIT DATA
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        function sisyphus() {
+        function singularity() {
             return {
                 tickets: [],
                 detectedCases: [],
                 rawData: '',
                 showModal: false,
-                isLoading: false,
                 isProcessing: false,
+                isLoading: false,
                 connectionStatus: 'OFFLINE',
-                sphereMesh: null, // For 3D manipulation
-
+                
+                // ThreeJS Refs
+                scene: null, camera: null, renderer: null, particles: null, bloomComposer: null,
+                
                 async init() {
-                    // JSONBin Connection
+                    this.init3D();
+                    this.introSequence();
+                    
                     if(CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) {
-                        this.connectionStatus = 'LIVE';
+                        this.connectionStatus = 'ONLINE';
                         await this.loadFromCloud();
                     } else {
-                        // Local Fallback
-                        const local = localStorage.getItem('chronext_sisyphus_v5');
+                        const local = localStorage.getItem('chronext_v6');
                         if(local) this.tickets = JSON.parse(local);
                     }
-                    this.initGravityEngine();
+                    this.updateEnvironment();
                 },
 
-                // --- 1. THE ANALYTIC ENGINE (Regex + Time Logic) ---
+                // --- 1. INTELLIGENCE PARSER (Enhanced) ---
                 processInput() {
                     this.isProcessing = true;
                     this.detectedCases = [];
-                    setTimeout(() => { // Sim delay for effect
-                        this.parseLogic(this.rawData);
-                        this.isProcessing = false;
-                    }, 600);
-                },
+                    setTimeout(() => {
+                        const text = this.rawData;
+                        // Regex Logic
+                        let chunks = text.replace(/\n\s*\n/g, '|||').split('|||');
+                        if(chunks.length < 2 && text.length > 100) chunks = text.split(/(?=https:\/\/|Bitte|SR\d)/g);
 
-                parseLogic(text) {
-                    // Split Logic: Double newlines or "https" followed by Client patterns
-                    let chunks = text.replace(/\n\s*\n/g, '||SPLIT||').split('||SPLIT||');
-                    if(chunks.length < 2 && text.length > 150) {
-                        // Fallback splitter for messy copy-pastes
-                         chunks = text.split(/(?=https:\/\/|Bitte|SR\d)/g); 
-                    }
+                        chunks.forEach(chunk => {
+                            if(chunk.length < 15) return;
+                            let severity = 5, action = "REVIEW", waitAlert = null;
 
-                    chunks.forEach(chunk => {
-                        if(chunk.length < 15) return;
-                        
-                        // Temporal Analysis
-                        let severity = 5;
-                        let action = "REVIEW";
-                        let waitAlert = null;
-                        
-                        const monthMap = { 'jan':0, 'feb':1, 'mär':2, 'mar':2, 'apr':3, 'mai':4, 'may':4, 'jun':5, 'jul':6, 'aug':7, 'sep':8, 'okt':9, 'oct':9, 'nov':10, 'dez':11, 'dec':11 };
-                        const monthMatch = chunk.match(/(?:seit|vom|ab|in)\s+(Jan(?:uar)?|Feb(?:ruar)?|Mär(?:z)?|Apr(?:il)?|Mai|Jun(?:i)?|Jul(?:i)?|Aug(?:ust)?|Sep(?:tember)?|Okt(?:ober)?|Nov(?:ember)?|Dez(?:ember)?)/i);
-                        
-                        if (monthMatch) {
-                            const mIndex = monthMap[monthMatch[1].toLowerCase().substring(0,3)];
-                            let diff = new Date().getMonth() - mIndex;
-                            if(diff < 0) diff += 12;
-                            if(diff >= 2) { 
-                                severity += 3; 
-                                waitAlert = `WAITING ${diff} MONTHS`; 
-                                action = "DE-ESCALATE";
+                            // Date Logic
+                            const months = ['jan','feb','mär','apr','mai','jun','jul','aug','sep','okt','nov','dez'];
+                            const mMatch = chunk.match(new RegExp(`(?:seit|vom|ab)\\s+(${months.join('|')})`, 'i'));
+                            if(mMatch) {
+                                let mIdx = months.findIndex(m => mMatch[1].toLowerCase().startsWith(m));
+                                let diff = new Date().getMonth() - mIdx;
+                                if(diff < 0) diff += 12;
+                                if(diff >= 2) { severity += 3; waitAlert = `WAITING ${diff} MONTHS`; action = "DE-ESCALATE"; }
                             }
-                        }
 
-                        // Keywords
-                        if(chunk.match(/anwalt|lawyer|polizei|betrug|deadline/i)) { severity = 10; action = "LEGAL THREAT"; }
-                        else if(chunk.match(/iban|auszahlung|geld/i)) { severity += 1; action = "FINANCE"; }
-                        else if(chunk.match(/dhl|retoure|ups/i)) { severity += 1; action = "LOGISTICS"; }
-                        else if(chunk.match(/anrufen|rückruf/i)) { if(action==="REVIEW") action="CALLBACK"; }
+                            // Keywords
+                            if(/anwalt|lawyer|polizei|frist/i.test(chunk)) { severity = 10; action = "LEGAL"; }
+                            else if(/geld|iban|auszahlung/i.test(chunk)) { severity += 1; action = "FINANCE"; }
+                            else if(/dhl|versand/i.test(chunk)) { severity += 1; action = "LOGISTICS"; }
+                            else if(/rückruf/i.test(chunk) && action === "REVIEW") action = "CALLBACK";
 
-                        // Extraction
-                        const link = (chunk.match(/https?:\/\/[^\s]+/) || [''])[0];
-                        const ref_id = (chunk.match(/(SR\d+|PO\d+|#\d{4,})/i) || [''])[0].toUpperCase();
-                        const client = (chunk.match(/(?:Herr|Frau|Mr|Mrs)\.?\s+([A-ZÄÖÜ][a-zäöü]+(?:\s[A-ZÄÖÜ][a-zäöü]+)?)/) || [null, (ref_id || 'Unknown Entity')])[1];
-                        const meta = (chunk.match(/(\+49[\d\s]+|DE\d{20,})/) || [''])[0].replace(/\s/g,'');
+                            // Extract
+                            const link = (chunk.match(/https?:\/\/[^\s]+/) || [''])[0];
+                            const ref = (chunk.match(/(SR\d+|PO\d+|#\d+)/i) || [''])[0].toUpperCase();
+                            const meta = (chunk.match(/(\+49[\d\s]+|DE\d{20,})/) || [''])[0].replace(/\s/g,'');
+                            let client = (chunk.match(/(?:Herr|Frau|Mr|Mrs)\.?\s+([A-ZÄÖÜ][a-zäöü]+(?:\s[A-ZÄÖÜ][a-zäöü]+)?)/) || [])[1] || ref || "Unknown";
 
-                        this.detectedCases.push({
-                            id: Date.now() + Math.random(),
-                            client, ref_id, link, meta_copy: meta,
-                            severity: Math.min(severity, 10),
-                            action, wait_time_alert: waitAlert,
-                            context: chunk.replace(link,'').substring(0,140).trim() + "..."
+                            this.detectedCases.push({
+                                id: Date.now() + Math.random(),
+                                client, ref_id: ref, context: chunk.replace(link,'').substring(0,120).trim() + "...",
+                                severity: Math.min(severity, 10), action, link, meta_copy: meta, wait_time_alert: waitAlert
+                            });
                         });
-                    });
+                        this.isProcessing = false;
+                    }, 800);
                 },
 
-                // --- 2. DATA OPS (With Implosion Animation) ---
                 async confirmImport() {
                     this.tickets.unshift(...this.detectedCases);
                     this.detectedCases = [];
                     this.showModal = false;
                     this.rawData = '';
                     await this.saveToCloud();
-                    this.updateGravity();
+                    this.updateEnvironment();
                 },
 
-                archive(id) {
-                    const el = document.getElementById('ticket-'+id);
-                    // GSAP Implosion
-                    gsap.to(el, {
-                        scale: 0.1, opacity: 0, duration: 0.4, ease: "back.in(1.7)",
-                        onComplete: async () => {
-                            this.tickets = this.tickets.filter(t => t.id !== id);
-                            await this.saveToCloud();
-                            this.updateGravity();
-                            // Check for Ascension (Zero Inbox)
-                            if(this.tickets.length === 0) this.triggerAscension();
-                        }
-                    });
-                },
-
+                // --- 2. DATA OPS ---
                 async loadFromCloud() {
                     this.isLoading = true;
                     try {
-                        const res = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}/latest`, {
-                            headers: { 'X-Master-Key': CLOUD_CONFIG.API_KEY }
-                        });
+                        const res = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}/latest`, { headers: { 'X-Master-Key': CLOUD_CONFIG.API_KEY } });
                         const data = await res.json();
-                        this.tickets = Array.isArray(data.record) ? data.record : []; 
-                    } catch(e) { console.error("Sync Error", e); }
+                        this.tickets = Array.isArray(data.record) ? data.record : [];
+                    } catch(e) { console.error(e); }
                     this.isLoading = false;
-                    this.updateGravity();
+                    this.updateEnvironment();
                 },
-
                 async saveToCloud() {
                     if(this.connectionStatus === 'OFFLINE') {
-                        localStorage.setItem('chronext_sisyphus_v5', JSON.stringify(this.tickets));
+                        localStorage.setItem('chronext_v6', JSON.stringify(this.tickets));
                         return;
                     }
                     this.isLoading = true;
@@ -419,79 +355,106 @@
                     });
                     this.isLoading = false;
                 },
-
+                archive(id) {
+                    const el = document.getElementById('ticket-'+id);
+                    gsap.to(el, { x: 100, opacity: 0, duration: 0.5, onComplete: async () => {
+                        this.tickets = this.tickets.filter(t => t.id !== id);
+                        await this.saveToCloud();
+                        this.updateEnvironment();
+                        this.warpEffect(); // Visual Reward
+                    }});
+                },
                 copy(t) { navigator.clipboard.writeText(t); },
-                get sortedTickets() { return this.tickets.sort((a,b) => b.severity - a.severity); },
                 openModal() { this.showModal = true; this.rawData = ''; this.detectedCases = []; },
+                get sortedTickets() { return this.tickets.sort((a,b) => b.severity - a.severity); },
+                calculateStress() { return Math.min(this.tickets.reduce((acc, t) => acc + t.severity, 0), 100); },
 
-                // --- 3. GRAVITY ENGINE (Three.js) ---
-                initGravityEngine() {
-                    const scene = new THREE.Scene();
-                    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-                    const renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
-                    renderer.setSize(window.innerWidth, window.innerHeight);
-                    document.getElementById('canvas-container').appendChild(renderer.domElement);
-                    camera.position.z = 30;
+                // --- 3. VISUAL ENGINE (ThreeJS + Bloom) ---
+                init3D() {
+                    const container = document.getElementById('webgl-container');
+                    this.scene = new THREE.Scene();
+                    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                    this.camera.position.z = 20;
+                    
+                    this.renderer = new THREE.WebGLRenderer({antialias: true});
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                    this.renderer.setPixelRatio(window.devicePixelRatio);
+                    container.appendChild(this.renderer.domElement);
 
-                    // The Core (Wireframe Sphere)
-                    const geo = new THREE.IcosahedronGeometry(10, 2);
-                    const mat = new THREE.MeshBasicMaterial({color: 0x333333, wireframe: true, transparent:true, opacity:0.1});
-                    this.sphereMesh = new THREE.Mesh(geo, mat);
-                    scene.add(this.sphereMesh);
+                    // POST PROCESSING (BLOOM)
+                    const renderScene = new THREE.RenderPass(this.scene, this.camera);
+                    this.bloomComposer = new THREE.EffectComposer(this.renderer);
+                    this.bloomComposer.addPass(renderScene);
+                    
+                    const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+                    bloomPass.threshold = 0; bloomPass.strength = 1.2; bloomPass.radius = 0.5;
+                    this.bloomComposer.addPass(bloomPass);
 
-                    // Particle Field (Stars/Dust)
+                    // PARTICLES (The Event Horizon)
                     const pGeo = new THREE.BufferGeometry();
-                    const pCount = 1500;
-                    const pPos = new Float32Array(pCount*3);
-                    for(let i=0; i<pCount*3; i++) pPos[i] = (Math.random()-0.5)*100;
-                    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-                    const pMat = new THREE.PointsMaterial({size: 0.1, color: 0x555555});
-                    const particles = new THREE.Points(pGeo, pMat);
-                    scene.add(particles);
+                    const pCount = 2000;
+                    const posArray = new Float32Array(pCount * 3);
+                    
+                    for(let i=0; i<pCount * 3; i++) {
+                        posArray[i] = (Math.random() - 0.5) * 60; 
+                    }
+                    
+                    pGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+                    const pMat = new THREE.PointsMaterial({ size: 0.1, color: 0xE6C200 });
+                    this.particles = new THREE.Points(pGeo, pMat);
+                    this.scene.add(this.particles);
 
-                    // Animation Loop
+                    // MOUSE INTERACTION
+                    document.addEventListener('mousemove', (e) => {
+                        const x = (e.clientX / window.innerWidth) * 2 - 1;
+                        const y = -(e.clientY / window.innerHeight) * 2 + 1;
+                        gsap.to(this.particles.rotation, { x: y * 0.2, y: x * 0.2, duration: 2 });
+                    });
+
+                    // ANIMATION LOOP
                     const animate = () => {
                         requestAnimationFrame(animate);
-                        
-                        // Default Rotation
-                        if(this.sphereMesh) {
-                            this.sphereMesh.rotation.y += 0.002;
-                            this.sphereMesh.rotation.x += 0.001;
-                        }
-                        particles.rotation.y -= 0.0005;
-
-                        // Mouse Parallax (subtle)
-                        renderer.render(scene, camera);
+                        this.particles.rotation.z += 0.001; // Base rotation
+                        this.bloomComposer.render();
                     };
                     animate();
-                    this.renderer = renderer;
-                    this.scene = scene;
                 },
 
-                updateGravity() {
-                    // Visual changes based on ticket count
-                    const count = this.tickets.length;
-                    if(!this.sphereMesh) return;
-
-                    if(count === 0) {
-                        // ASCENSION MODE
-                        gsap.to(this.sphereMesh.material, { color: 0xD4AF37, opacity: 0.3, duration: 2 });
-                        gsap.to(this.sphereMesh.scale, { x: 1.5, y: 1.5, z: 1.5, duration: 3 });
-                    } else if (count > 10) {
-                        // STRESS MODE
-                        gsap.to(this.sphereMesh.material, { color: 0xFF3333, opacity: 0.2, duration: 1 });
-                        gsap.to(this.sphereMesh.scale, { x: 0.8, y: 0.8, z: 0.8, duration: 0.5 });
+                updateEnvironment() {
+                    // Changes visual state based on stress
+                    const stress = this.calculateStress();
+                    
+                    if(stress > 50) {
+                        // CHAOS MODE (Red, Fast)
+                        gsap.to(this.particles.material.color, { r: 1, g: 0.2, b: 0.2, duration: 1 });
+                        gsap.to(this.particles.rotation, { timeScale: 2, duration: 1 });
                     } else {
-                        // NORMAL MODE
-                        gsap.to(this.sphereMesh.material, { color: 0x333333, opacity: 0.1, duration: 1 });
-                        gsap.to(this.sphereMesh.scale, { x: 1, y: 1, z: 1, duration: 1 });
+                        // GOLDEN ERA (Gold, Slow, Elegant)
+                        gsap.to(this.particles.material.color, { r: 0.9, g: 0.76, b: 0, duration: 1 });
                     }
                 },
-                
-                triggerAscension() {
-                    // Special effect for Zero Inbox
-                    // Can add confetti here if desired via another library, 
-                    // currently handled by the Gold Shift in updateGravity
+
+                warpEffect() {
+                    // Warp speed effect on resolve
+                    gsap.to(this.particles.scale, { x: 2, y: 2, z: 2, duration: 0.2, yoyo: true, repeat: 1 });
+                },
+
+                hoverTicket(severity) {
+                    // Camera reacts to high severity hover
+                    if(severity >= 9) {
+                        gsap.to(this.camera.position, { z: 18, duration: 0.5 }); // Zoom in slightly
+                    }
+                },
+                resetEnvironment() {
+                    gsap.to(this.camera.position, { z: 20, duration: 0.5 });
+                },
+
+                introSequence() {
+                    const tl = gsap.timeline();
+                    tl.to(".intro-text", { opacity: 1, duration: 1.5, ease: "power2.out" })
+                      .to(".intro-line", { width: "200px", duration: 1 }, "-=0.5")
+                      .to("#intro-curtain", { opacity: 0, display: "none", duration: 1.5, delay: 0.5 })
+                      .to(".main-interface", { opacity: 1, duration: 1 });
                 }
             }
         }
