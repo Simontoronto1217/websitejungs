@@ -1,367 +1,1113 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHRONEXT Escalation Cockpit</title>
-    
-    <!-- Tailwind CSS für das Styling (Chronext Look) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- React und ReactDOM (Die Engine) -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- Babel (Damit der Browser React versteht) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intervention Dashboard — Escalation Cockpit</title>
 
-    <!-- Google Fonts: Inter (Ähnlich wie Chronext CI) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <!-- Tailwind (CDN, zero build) -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #111111; /* Deep Black Background */
-            color: #f3f4f6;
+  <!-- Tailwind theme extension -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: "#0B0F14",
+            night: "#07111E",
+            anthracite: "#10161F",
+            smoke: "#A8B3C7",
+            platinum: "#C7D0DE",
+            rose: "#B7866B",      // Roségold
+            carmine: "#B0122D",   // Karmesin
+            legal: "#D11E3A",
+            glass: "rgba(255,255,255,0.06)"
+          },
+          boxShadow: {
+            luxe: "0 18px 60px rgba(0,0,0,0.55)",
+            halo: "0 0 0 1px rgba(255,255,255,0.08), 0 18px 60px rgba(0,0,0,0.55)"
+          }
         }
-        .cx-green { color: #00A651; }
-        .bg-cx-green { background-color: #00A651; }
-        .bg-cx-green:hover { background-color: #008c44; }
-        
-        .card-dark {
-            background-color: #1a1a1a;
-            border: 1px solid #333;
-        }
-        
-        /* Scrollbar dunkel machen */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #111; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #444; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555; 
-        }
-    </style>
+      }
+    }
+  </script>
+
+  <!-- Alpine.js (reactive DOM state) -->
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+
+  <!-- GSAP (micro-interactions, cinematic transitions) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <!-- ========== SINGLE SOURCE OF TRUTH (EDIT ONLY THIS JSON) ========== -->
+  <script>
+    window.ESCALATIONS = [
+      {
+        "Severity_Index": 10,
+        "Client_Name": "Client A",
+        "Context_Briefing": "Anwaltsschreiben angedroht. IBAN: DE44500105175407324931. Tel: +49 171 2345678. Bitte sofortige Rückmeldung.",
+        "Action_Required": "Legal Risk triage: Sachverhalt prüfen, Rückruf, schriftliche Bestätigung vorbereiten.",
+        "Deep_Link": "https://example.com/case/123",
+        "Timestamp": "2026-01-22T08:12:00Z"
+      },
+      {
+        "Severity_Index": 7,
+        "Client_Name": "Client B",
+        "Context_Briefing": "Logistikfehler: Paket hängt. Tracking: 1Z999AA10123456784. Kunde eskaliert.",
+        "Action_Required": "Ops: Carrier kontaktieren, ETA verifizieren, proaktive Kundeninfo senden.",
+        "Deep_Link": "https://example.com/ticket/456",
+        "Timestamp": "2026-01-21T18:40:00Z"
+      },
+      {
+        "Severity_Index": 3,
+        "Client_Name": "Client C",
+        "Context_Briefing": "Status-Update angefragt, keine Dringlichkeit. Tel: 030 1234567.",
+        "Action_Required": "Kurz antworten: Status, nächste Schritte, Erwartungsmanagement.",
+        "Deep_Link": "https://example.com/crm/789",
+        "Timestamp": "2026-01-20T09:05:00Z"
+      }
+    ];
+  </script>
+
+  <style>
+    :root { color-scheme: dark; }
+    html, body { height: 100%; }
+    body {
+      background:
+        radial-gradient(1200px 600px at 20% 10%, rgba(183,134,107,0.18), transparent 55%),
+        radial-gradient(900px 500px at 85% 25%, rgba(199,208,222,0.10), transparent 60%),
+        radial-gradient(1100px 800px at 50% 120%, rgba(176,18,45,0.12), transparent 55%),
+        linear-gradient(180deg, #07111E 0%, #0B0F14 60%, #070A0F 100%);
+    }
+    .glass {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .hairline {
+      background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02), rgba(255,255,255,0.12));
+      height: 1px;
+    }
+    .chip {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .btn {
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
+      will-change: transform;
+    }
+    .btn:hover { box-shadow: 0 14px 38px rgba(0,0,0,0.45); border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.08); }
+    .btn:active { transform: translateY(1px) scale(0.99); }
+    .card {
+      transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+      will-change: transform;
+    }
+    .card:hover {
+      transform: translateY(-2px) scale(1.008);
+      box-shadow: 0 22px 70px rgba(0,0,0,0.62);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+    .no-select { user-select: none; }
+    .toast {
+      background: rgba(9, 14, 20, 0.72);
+      border: 1px solid rgba(255,255,255,0.14);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+    }
+    .reduce-motion * { transition: none !important; animation: none !important; }
+  </style>
 </head>
-<body>
-    <div id="root"></div>
 
-    <script type="text/babel">
-        // --- ICONS (Als SVG Komponenten, damit keine externen Imports nötig sind) ---
-        const ShieldAlert = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-        );
-        const Plus = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-        );
-        const Trash2 = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-        );
-        const Clock = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        );
-        const Copy = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-        );
-        const CheckCircle = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        );
-        const Save = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        );
+<body class="text-platinum">
+  <div
+    x-data="dashboard()"
+    x-init="init()"
+    :class="reducedMotion ? 'reduce-motion' : ''"
+    class="min-h-screen"
+  >
+    <!-- Header -->
+    <header class="px-5 md:px-8 pt-7 pb-4">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <div class="text-xs uppercase tracking-[0.28em] text-smoke/80 no-select">High-Fidelity Intervention Dashboard</div>
+            <h1 class="mt-2 text-2xl md:text-3xl font-semibold tracking-tight">
+              Escalation Cockpit
+              <span class="text-smoke/70 font-normal">— form follows function, but the function wears a Patek suit.</span>
+            </h1>
+          </div>
 
-        // --- HAUPTAPP ---
-        const EscalationManager = () => {
-            // DATEN LADEN: Versucht beim Start Daten aus dem LocalStorage zu holen
-            const [cases, setCases] = React.useState(() => {
-                try {
-                    const savedData = localStorage.getItem('cx_escalation_data_v1');
-                    return savedData ? JSON.parse(savedData) : [];
-                } catch (error) {
-                    console.error("Fehler beim Laden der Daten:", error);
-                    return [];
-                }
-            });
-
-            const [formData, setFormData] = React.useState({
-                name: '',
-                caseNumber: '',
-                type: 'Refund (Storno)',
-                priority: 'Normal',
-                waitingSince: '',
-                context: ''
-            });
-
-            // DATEN SPEICHERN: Speichert automatisch bei jeder Änderung an 'cases'
-            React.useEffect(() => {
-                localStorage.setItem('cx_escalation_data_v1', JSON.stringify(cases));
-            }, [cases]);
-
-            // Prioritäten-Logik
-            const priorityScore = (p) => {
-                switch (p) {
-                    case 'Rechtliche Schritte/Einschreiben': return 5;
-                    case 'Anwalt gedroht': return 4;
-                    case 'Trustpilot Gefahr': return 3;
-                    case 'Unruhig': return 2;
-                    default: return 1;
-                }
-            };
-
-            // Automatische Sortierung
-            const sortedCases = React.useMemo(() => {
-                return [...cases].sort((a, b) => {
-                    const scoreA = priorityScore(a.priority);
-                    const scoreB = priorityScore(b.priority);
-                    if (scoreB !== scoreA) return scoreB - scoreA;
-                    
-                    // Bei gleicher Prio: Wer wartet länger?
-                    const dateA = a.waitingSince ? new Date(a.waitingSince).getTime() : 0;
-                    const dateB = b.waitingSince ? new Date(b.waitingSince).getTime() : 0;
-                    return dateA - dateB;
-                });
-            }, [cases]);
-
-            const handleAdd = () => {
-                if (!formData.name || !formData.caseNumber) return;
-                const newCase = {
-                    ...formData,
-                    id: Date.now().toString(),
-                    dateAdded: new Date().toLocaleDateString('de-DE')
-                };
-                setCases([...cases, newCase]);
-                // Formular zurücksetzen, Datum behalten
-                setFormData({ ...formData, name: '', caseNumber: '', context: '' });
-            };
-
-            const handleDelete = (id) => {
-                if(confirm('Diesen Fall wirklich löschen?')) {
-                    setCases(cases.filter(c => c.id !== id));
-                }
-            };
-
-            const generateEmailText = () => {
-                const urgentCases = sortedCases.filter(c => priorityScore(c.priority) >= 3);
-                const date = new Date().toLocaleDateString('de-DE');
-
-                let text = `Betreff: DRINGEND: Eskalations-Liste Auszahlungen - ${date}\n\n`;
-                text += `Hallo [Name],\n\n`;
-                text += `Hier ist die Übersicht der kritischen Fälle von heute. Um Trustpilot-Schäden und Rechtskosten abzuwenden, bitte ich um priorisierte Freigabe für folgende Fälle:\n\n`;
-
-                if (urgentCases.length === 0) {
-                    text += "(Keine kritischen Prio-3+ Fälle heute erfasst)\n\n";
-                }
-
-                urgentCases.forEach((c, index) => {
-                    text += `${index + 1}. ${c.priority.toUpperCase()} - ${c.name} (Fall #${c.caseNumber})\n`;
-                    text += `   - Typ: ${c.type}\n`;
-                    text += `   - Wartet seit: ${c.waitingSince || 'Nicht angegeben'}\n`;
-                    text += `   - Kontext: ${c.context}\n\n`;
-                });
-
-                text += `Gesamtübersicht aller offenen Eskalationen im Anhang.\n\nBeste Grüße,\n[Dein Name]`;
-                return text;
-            };
-
-            const copyToClipboard = () => {
-                const text = generateEmailText();
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert("E-Mail Text kopiert!");
-            };
-
-            // Farb-Logik für Dark Mode
-            const getPriorityColor = (p) => {
-                switch (p) {
-                    case 'Rechtliche Schritte/Einschreiben': return 'border-l-4 border-red-600 bg-red-900/20';
-                    case 'Anwalt gedroht': return 'border-l-4 border-orange-500 bg-orange-900/20';
-                    case 'Trustpilot Gefahr': return 'border-l-4 border-yellow-500 bg-yellow-900/20';
-                    default: return 'border border-gray-700 bg-gray-800';
-                }
-            };
-            
-            const getBadgeColor = (p) => {
-                 switch (p) {
-                    case 'Rechtliche Schritte/Einschreiben': return 'text-red-400 border-red-900 bg-red-900/30';
-                    case 'Anwalt gedroht': return 'text-orange-400 border-orange-900 bg-orange-900/30';
-                    case 'Trustpilot Gefahr': return 'text-yellow-400 border-yellow-900 bg-yellow-900/30';
-                    default: return 'text-gray-400 border-gray-700 bg-gray-800';
-                }
-            }
-
-            return (
-                <div className="min-h-screen p-4 md:p-8">
-                    <div className="max-w-6xl mx-auto">
-                        
-                        {/* Header */}
-                        <div className="mb-10 flex items-center justify-between border-b border-gray-800 pb-6">
-                            <div className="flex items-center gap-3">
-                                <ShieldAlert className="w-10 h-10 text-white" />
-                                <div>
-                                    <h1 className="text-2xl font-light tracking-wide text-white">CHRONEXT <span className="font-bold text-gray-500">INTERNAL</span></h1>
-                                    <p className="text-gray-400 text-sm">Escalation Management Cockpit v2.1</p>
-                                </div>
-                            </div>
-                            {/* Auto-Save Indicator */}
-                            <div className="hidden md:flex flex-col items-end">
-                                <span className="text-xs text-green-500 flex items-center gap-1 border border-green-900 bg-green-900/10 px-3 py-1 rounded-full mb-1">
-                                    <Save className="w-3 h-3" /> Auto-Save aktiv (Lokal)
-                                </span>
-                                <span className="text-[10px] text-gray-600">Daten werden im Browser-Cache gespeichert.</span>
-                            </div>
-                        </div>
-
-                        {/* Eingabe Bereich */}
-                        <div className="card-dark p-6 rounded-lg shadow-xl mb-8">
-                            <h2 className="text-lg font-medium mb-6 flex items-center gap-2 text-white">
-                                <span className="bg-cx-green w-1 h-6 rounded-sm"></span>
-                                Neuen Fall erfassen
-                            </h2>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                                <input
-                                    className="p-3 bg-black border border-gray-700 rounded text-white focus:border-green-600 outline-none transition-colors"
-                                    placeholder="Kundenname"
-                                    value={formData.name}
-                                    onChange={e => setFormData({...formData, name: e.target.value})}
-                                />
-                                <input
-                                    className="p-3 bg-black border border-gray-700 rounded text-white focus:border-green-600 outline-none transition-colors"
-                                    placeholder="Fall Nummer / Order ID"
-                                    value={formData.caseNumber}
-                                    onChange={e => setFormData({...formData, caseNumber: e.target.value})}
-                                />
-                                <select
-                                    className="p-3 bg-black border border-gray-700 rounded text-white focus:border-green-600 outline-none"
-                                    value={formData.type}
-                                    onChange={e => setFormData({...formData, type: e.target.value})}
-                                >
-                                    <option>Refund (Storno)</option>
-                                    <option>Auszahlung (Verkauf)</option>
-                                </select>
-                                
-                                <select
-                                    className="p-3 bg-black border border-gray-700 rounded text-white focus:border-red-500 outline-none"
-                                    value={formData.priority}
-                                    onChange={e => setFormData({...formData, priority: e.target.value})}
-                                >
-                                    <option>Normal</option>
-                                    <option>Unruhig</option>
-                                    <option>Trustpilot Gefahr</option>
-                                    <option>Anwalt gedroht</option>
-                                    <option>Rechtliche Schritte/Einschreiben</option>
-                                </select>
-
-                                <div className="flex flex-col">
-                                    <label className="text-xs text-gray-500 mb-1 ml-1">Wartet auf Geld seit:</label>
-                                    <input
-                                        type="date"
-                                        className="p-2.5 bg-black border border-gray-700 rounded text-white focus:border-green-600 outline-none w-full"
-                                        value={formData.waitingSince}
-                                        onChange={e => setFormData({...formData, waitingSince: e.target.value})}
-                                    />
-                                </div>
-
-                                <input
-                                    className="p-3 bg-black border border-gray-700 rounded text-white focus:border-green-600 outline-none lg:col-span-1"
-                                    placeholder="Kontext (Kurzfassung für Chef)"
-                                    value={formData.context}
-                                    onChange={e => setFormData({...formData, context: e.target.value})}
-                                />
-                            </div>
-                            
-                            <button
-                                onClick={handleAdd}
-                                className="mt-6 bg-cx-green hover:bg-green-700 text-white px-8 py-3 rounded font-medium transition-all w-full md:w-auto flex justify-center items-center gap-2 uppercase tracking-wider text-sm shadow-lg hover:shadow-green-900/50"
-                            >
-                                <Plus className="w-4 h-4" /> Fall hinzufügen
-                            </button>
-                        </div>
-
-                        {/* Dashboard Grid */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            
-                            {/* Linke Spalte: Die Liste */}
-                            <div className="lg:col-span-2 space-y-4">
-                                <div className="flex justify-between items-center pb-2 border-b border-gray-800">
-                                    <h2 className="text-gray-300 font-medium">Priorisierte Liste</h2>
-                                    <span className="text-xs bg-gray-800 px-2 py-1 rounded text-gray-400">{sortedCases.length} Fälle</span>
-                                </div>
-
-                                {sortedCases.length === 0 && (
-                                    <div className="text-center py-16 border border-dashed border-gray-800 rounded-lg text-gray-600">
-                                        <ShieldAlert className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                        <p>Warteraum leer. Bereit für Eingaben.</p>
-                                    </div>
-                                )}
-
-                                {sortedCases.map(c => (
-                                    <div key={c.id} className={`p-4 rounded shadow-sm flex flex-col md:flex-row gap-4 justify-between items-start md:items-center transition-all ${getPriorityColor(c.priority)}`}>
-                                        <div className="flex-1">
-                                            <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded border ${getBadgeColor(c.priority)}`}>
-                                                    {c.priority}
-                                                </span>
-                                                <span className="text-xs text-gray-500 flex items-center gap-1">
-                                                    <Clock className="w-3 h-3" /> Seit: {c.waitingSince || 'N/A'}
-                                                </span>
-                                                <span className="text-xs text-gray-500 bg-gray-900 px-2 py-0.5 rounded">
-                                                    {c.type}
-                                                </span>
-                                            </div>
-                                            <h3 className="font-bold text-white text-lg">{c.name} <span className="text-gray-600 font-normal text-sm">#{c.caseNumber}</span></h3>
-                                            <p className="text-sm text-gray-400 mt-1">{c.context}</p>
-                                        </div>
-                                        <button onClick={() => handleDelete(c.id)} className="text-gray-600 hover:text-red-500 transition-colors p-2 hover:bg-gray-900 rounded-full">
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Rechte Spalte: Email Generator */}
-                            <div className="lg:col-span-1">
-                                <div className="sticky top-6">
-                                    <div className="card-dark rounded-lg p-5 border border-gray-700">
-                                        <h2 className="text-gray-300 font-medium mb-4 flex items-center gap-2">
-                                            <CheckCircle className="w-5 h-5 text-green-500" /> Tagesabschluss
-                                        </h2>
-                                        
-                                        <div className="bg-black text-gray-300 p-4 rounded text-xs font-mono whitespace-pre-wrap shadow-inner border border-gray-800 h-[400px] overflow-y-auto">
-                                            {generateEmailText()}
-                                        </div>
-                                        
-                                        <button
-                                            onClick={copyToClipboard}
-                                            className="mt-4 w-full bg-white text-black hover:bg-gray-200 py-3 rounded font-medium shadow-lg flex justify-center items-center gap-2 transition-transform active:scale-95 uppercase text-xs tracking-widest"
-                                        >
-                                            <Copy className="w-4 h-4" /> Für Mail kopieren
-                                        </button>
-                                    </div>
-                                    <div className="mt-4 text-center">
-                                         <p className="text-xs text-gray-600 italic">"Stay focused. You got this." - Anna</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
+          <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+            <div class="glass rounded-xl px-4 py-3">
+              <div class="flex items-center gap-3 text-sm">
+                <div class="flex items-center gap-2">
+                  <span class="inline-block w-2 h-2 rounded-full" style="background:#D11E3A"></span>
+                  <span class="text-smoke/85">Critical</span>
+                  <span class="mono text-platinum" x-text="counts.t1"></span>
                 </div>
-            );
-        };
+                <div class="w-px h-4 bg-white/10"></div>
+                <div class="flex items-center gap-2">
+                  <span class="inline-block w-2 h-2 rounded-full" style="background:#B7866B"></span>
+                  <span class="text-smoke/85">Ops</span>
+                  <span class="mono text-platinum" x-text="counts.t2"></span>
+                </div>
+                <div class="w-px h-4 bg-white/10"></div>
+                <div class="flex items-center gap-2">
+                  <span class="inline-block w-2 h-2 rounded-full" style="background:#C7D0DE"></span>
+                  <span class="text-smoke/85">Standard</span>
+                  <span class="mono text-platinum" x-text="counts.t3"></span>
+                </div>
+              </div>
+            </div>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<EscalationManager />);
-    </script>
+            <div class="glass rounded-xl px-4 py-3 flex items-center gap-3">
+              <input
+                x-model="query"
+                type="text"
+                placeholder="Search (Name / Context / Action)…"
+                class="bg-transparent outline-none text-sm w-56 md:w-72 placeholder:text-smoke/60"
+              />
+              <button class="btn magnetic rounded-lg px-3 py-2 text-xs text-smoke/85 hover:text-platinum"
+                      @click="query=''; toast('Search cleared.')">
+                Clear
+              </button>
+            </div>
+
+            <button class="btn magnetic rounded-xl px-4 py-3 text-sm"
+                    @click="showDismissed = !showDismissed">
+              <span class="text-smoke/80">Dismissed</span>
+              <span class="mono ml-2" x-text="counts.dismissed"></span>
+              <span class="ml-2 text-smoke/70" x-text="showDismissed ? '▾' : '▸'"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-5 hairline opacity-60"></div>
+      </div>
+    </header>
+
+    <!-- Sticky Critical Tier -->
+    <section class="px-5 md:px-8">
+      <div class="max-w-6xl mx-auto">
+        <div class="sticky top-3 z-40">
+          <template x-if="tier1Filtered.length">
+            <div class="glass rounded-2xl p-4 md:p-5 border border-white/10">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-2.5 h-2.5 rounded-full bg-legal"></div>
+                  <div class="text-sm uppercase tracking-[0.22em] text-smoke/80">Tier 1 — Legal/Financial Risk</div>
+                </div>
+                <button class="btn magnetic rounded-xl px-4 py-2 text-xs"
+                        @click="scrollToSection('tier2')">
+                  Jump to Ops ↓
+                </button>
+              </div>
+
+              <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <template x-for="t in tier1Filtered" :key="t.id">
+                  <div
+                    class="glass card rounded-2xl p-4 md:p-5 relative overflow-hidden border border-white/10"
+                    data-card
+                    :data-id="t.id"
+                  >
+                    <div class="absolute inset-0 pointer-events-none opacity-60"
+                         :style="`background: radial-gradient(500px 120px at 25% 0%, rgba(209,30,58,0.22), transparent 55%),
+                                           radial-gradient(500px 160px at 80% 10%, rgba(183,134,107,0.14), transparent 60%)`">
+                    </div>
+
+                    <div class="relative flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                          <span class="text-xs uppercase tracking-[0.22em] text-smoke/80">CRITICAL</span>
+                          <span class="mono text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5">
+                            SVI <span x-text="t.Severity_Index"></span>/10
+                          </span>
+                        </div>
+                        <div class="mt-2 text-lg font-semibold truncate" x-text="t.Client_Name"></div>
+                        <div class="mt-1 text-sm text-smoke/85 line-clamp-2" x-text="t.Action_Required"></div>
+                      </div>
+
+                      <div class="flex flex-col items-end gap-2 shrink-0">
+                        <div class="text-xs text-smoke/70 mono" x-text="formatRelative(t.Timestamp)"></div>
+                        <a class="btn magnetic rounded-xl px-4 py-2 text-xs font-medium"
+                           :class="t.Deep_Link ? 'text-platinum' : 'text-smoke/50 pointer-events-none opacity-60'"
+                           :href="t.Deep_Link || '#'"
+                           target="_blank" rel="noopener">
+                          Open Case File →
+                        </a>
+                      </div>
+                    </div>
+
+                    <div class="mt-4 flex items-center justify-between gap-3 relative">
+                      <button class="btn magnetic rounded-xl px-4 py-2 text-xs"
+                              @click="toggleExpand(t.id, $event)">
+                        <span x-text="expanded[t.id] ? 'Collapse' : 'Expand'"></span>
+                      </button>
+
+                      <button class="btn magnetic rounded-xl px-4 py-2 text-xs border-legal/50"
+                              @click="dismissTicket(t, $event)">
+                        Dismiss (not delete)
+                      </button>
+                    </div>
+
+                    <div class="relative mt-4 overflow-hidden" data-details style="height:0; opacity:0">
+                      <div class="hairline opacity-50 mb-4"></div>
+
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">Context</div>
+                          <div class="mt-2 text-sm text-smoke/90 leading-relaxed" x-text="t.Context_Briefing"></div>
+                        </div>
+                        <div>
+                          <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">One‑Tap Extraction</div>
+                          <div class="mt-2 flex flex-wrap gap-2">
+                            <template x-for="token in extractTokens(t)" :key="token.value + token.type">
+                              <button class="chip rounded-xl px-3 py-2 text-xs flex items-center gap-2 btn magnetic"
+                                      @click="copy(token.value)">
+                                <span class="text-smoke/70" x-text="token.type"></span>
+                                <span class="mono text-platinum" x-text="token.value"></span>
+                                <span class="text-smoke/60">⧉</span>
+                              </button>
+                            </template>
+                            <template x-if="extractTokens(t).length === 0">
+                              <div class="text-xs text-smoke/60">No extractable tokens detected.</div>
+                            </template>
+                          </div>
+
+                          <div class="mt-4 text-xs text-smoke/60 mono">
+                            Timestamp: <span x-text="formatExact(t.Timestamp)"></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Pulsing halo hook -->
+                    <div class="absolute -inset-8 pointer-events-none opacity-0" data-critical-halo></div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <template x-if="!tier1Filtered.length">
+            <div class="glass rounded-2xl p-4 md:p-5 border border-white/10">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-2.5 h-2.5 rounded-full bg-platinum/70"></div>
+                  <div class="text-sm uppercase tracking-[0.22em] text-smoke/80">Tier 1 — clear</div>
+                </div>
+                <div class="text-xs text-smoke/60">No critical items above the fold. Enjoy it while it lasts.</div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main tiers -->
+    <main class="px-5 md:px-8 pt-6 pb-16">
+      <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Tier 2 -->
+        <section id="tier2" class="lg:col-span-7">
+          <div class="glass rounded-2xl p-5">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">Tier 2</div>
+                <div class="mt-1 text-lg font-semibold">Operational Failure</div>
+              </div>
+              <div class="text-xs text-smoke/60 mono" x-text="'Showing ' + tier2Filtered.length"></div>
+            </div>
+
+            <div class="mt-4 hairline opacity-60"></div>
+
+            <div class="mt-5 grid grid-cols-1 gap-4">
+              <template x-for="t in tier2Filtered" :key="t.id">
+                <div class="glass card rounded-2xl p-4 md:p-5 border border-white/10 relative overflow-hidden"
+                     data-card :data-id="t.id">
+                  <div class="absolute inset-0 pointer-events-none opacity-50"
+                       :style="`background: radial-gradient(520px 140px at 10% 0%, rgba(183,134,107,0.22), transparent 58%),
+                                       radial-gradient(520px 180px at 90% 20%, rgba(199,208,222,0.10), transparent 60%)`"></div>
+
+                  <div class="relative flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="mono text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5">
+                          SVI <span x-text="t.Severity_Index"></span>/10
+                        </span>
+                        <span class="text-xs uppercase tracking-[0.22em] text-smoke/80">OPS</span>
+                      </div>
+                      <div class="mt-2 text-base font-semibold truncate" x-text="t.Client_Name"></div>
+                      <div class="mt-1 text-sm text-smoke/85 line-clamp-2" x-text="t.Action_Required"></div>
+                    </div>
+
+                    <div class="flex flex-col items-end gap-2 shrink-0">
+                      <div class="text-xs text-smoke/70 mono" x-text="formatRelative(t.Timestamp)"></div>
+                      <a class="btn magnetic rounded-xl px-4 py-2 text-xs font-medium"
+                         :class="t.Deep_Link ? 'text-platinum' : 'text-smoke/50 pointer-events-none opacity-60'"
+                         :href="t.Deep_Link || '#'"
+                         target="_blank" rel="noopener">
+                        Open Case File →
+                      </a>
+                    </div>
+                  </div>
+
+                  <div class="mt-4 flex items-center justify-between gap-3 relative">
+                    <button class="btn magnetic rounded-xl px-4 py-2 text-xs"
+                            @click="toggleExpand(t.id, $event)">
+                      <span x-text="expanded[t.id] ? 'Collapse' : 'Expand'"></span>
+                    </button>
+
+                    <button class="btn magnetic rounded-xl px-4 py-2 text-xs"
+                            @click="dismissTicket(t, $event)">
+                      Dismiss
+                    </button>
+                  </div>
+
+                  <div class="relative mt-4 overflow-hidden" data-details style="height:0; opacity:0">
+                    <div class="hairline opacity-50 mb-4"></div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">Context</div>
+                        <div class="mt-2 text-sm text-smoke/90 leading-relaxed" x-text="t.Context_Briefing"></div>
+                      </div>
+                      <div>
+                        <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">One‑Tap Extraction</div>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                          <template x-for="token in extractTokens(t)" :key="token.value + token.type">
+                            <button class="chip rounded-xl px-3 py-2 text-xs flex items-center gap-2 btn magnetic"
+                                    @click="copy(token.value)">
+                              <span class="text-smoke/70" x-text="token.type"></span>
+                              <span class="mono text-platinum" x-text="token.value"></span>
+                              <span class="text-smoke/60">⧉</span>
+                            </button>
+                          </template>
+                          <template x-if="extractTokens(t).length === 0">
+                            <div class="text-xs text-smoke/60">No extractable tokens detected.</div>
+                          </template>
+                        </div>
+
+                        <div class="mt-4 text-xs text-smoke/60 mono">
+                          Timestamp: <span x-text="formatExact(t.Timestamp)"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <template x-if="tier2Filtered.length === 0">
+                <div class="text-sm text-smoke/70">No Tier‑2 items (under current search filter).</div>
+              </template>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tier 3 + Dismissed -->
+        <aside class="lg:col-span-5 space-y-6">
+          <section class="glass rounded-2xl p-5">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">Tier 3</div>
+                <div class="mt-1 text-lg font-semibold">Standard Inbound</div>
+              </div>
+              <div class="text-xs text-smoke/60 mono" x-text="'Showing ' + tier3Filtered.length"></div>
+            </div>
+
+            <div class="mt-4 hairline opacity-60"></div>
+
+            <div class="mt-5 grid grid-cols-1 gap-4">
+              <template x-for="t in tier3Filtered" :key="t.id">
+                <div class="glass card rounded-2xl p-4 border border-white/10 relative overflow-hidden"
+                     data-card :data-id="t.id">
+                  <div class="absolute inset-0 pointer-events-none opacity-45"
+                       :style="`background: radial-gradient(520px 160px at 15% 0%, rgba(199,208,222,0.12), transparent 60%)`"></div>
+
+                  <div class="relative flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="mono text-xs px-2 py-1 rounded-lg border border-white/15 bg-white/5">
+                          SVI <span x-text="t.Severity_Index"></span>/10
+                        </span>
+                        <span class="text-xs uppercase tracking-[0.22em] text-smoke/80">STD</span>
+                      </div>
+                      <div class="mt-2 text-sm font-semibold truncate" x-text="t.Client_Name"></div>
+                      <div class="mt-1 text-xs text-smoke/85 line-clamp-2" x-text="t.Action_Required"></div>
+                    </div>
+
+                    <div class="flex flex-col items-end gap-2 shrink-0">
+                      <div class="text-xs text-smoke/70 mono" x-text="formatRelative(t.Timestamp)"></div>
+                      <a class="btn magnetic rounded-xl px-3 py-2 text-xs font-medium"
+                         :class="t.Deep_Link ? 'text-platinum' : 'text-smoke/50 pointer-events-none opacity-60'"
+                         :href="t.Deep_Link || '#'"
+                         target="_blank" rel="noopener">
+                        Open →
+                      </a>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 flex items-center justify-between gap-3 relative">
+                    <button class="btn magnetic rounded-xl px-3 py-2 text-xs"
+                            @click="toggleExpand(t.id, $event)">
+                      <span x-text="expanded[t.id] ? 'Collapse' : 'Expand'"></span>
+                    </button>
+
+                    <button class="btn magnetic rounded-xl px-3 py-2 text-xs"
+                            @click="dismissTicket(t, $event)">
+                      Dismiss
+                    </button>
+                  </div>
+
+                  <div class="relative mt-3 overflow-hidden" data-details style="height:0; opacity:0">
+                    <div class="hairline opacity-50 mb-3"></div>
+                    <div class="text-xs text-smoke/90 leading-relaxed" x-text="t.Context_Briefing"></div>
+
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <template x-for="token in extractTokens(t)" :key="token.value + token.type">
+                        <button class="chip rounded-xl px-3 py-2 text-xs flex items-center gap-2 btn magnetic"
+                                @click="copy(token.value)">
+                          <span class="text-smoke/70" x-text="token.type"></span>
+                          <span class="mono text-platinum" x-text="token.value"></span>
+                          <span class="text-smoke/60">⧉</span>
+                        </button>
+                      </template>
+                      <template x-if="extractTokens(t).length === 0">
+                        <div class="text-xs text-smoke/60">No tokens.</div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <template x-if="tier3Filtered.length === 0">
+                <div class="text-sm text-smoke/70">No Tier‑3 items (under current search filter).</div>
+              </template>
+            </div>
+          </section>
+
+          <section class="glass rounded-2xl p-5" x-show="showDismissed" x-transition.opacity.duration.200ms>
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-xs uppercase tracking-[0.22em] text-smoke/80">Dismissed</div>
+                <div class="mt-1 text-lg font-semibold">Archive (recoverable)</div>
+              </div>
+              <button class="btn magnetic rounded-xl px-4 py-2 text-xs"
+                      @click="restoreAll()">
+                Restore all
+              </button>
+            </div>
+
+            <div class="mt-4 hairline opacity-60"></div>
+
+            <div class="mt-5 grid grid-cols-1 gap-3">
+              <template x-for="t in dismissedFiltered" :key="t.id">
+                <div class="glass rounded-2xl p-4 border border-white/10 opacity-85">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-xs text-smoke/70 mono">SVI <span x-text="t.Severity_Index"></span>/10</div>
+                      <div class="mt-1 text-sm font-semibold truncate" x-text="t.Client_Name"></div>
+                      <div class="mt-1 text-xs text-smoke/80 line-clamp-2" x-text="t.Action_Required"></div>
+                    </div>
+                    <button class="btn magnetic rounded-xl px-3 py-2 text-xs"
+                            @click="restoreTicket(t)">
+                      Restore
+                    </button>
+                  </div>
+                </div>
+              </template>
+
+              <template x-if="dismissedFiltered.length === 0">
+                <div class="text-sm text-smoke/70">Nothing dismissed.</div>
+              </template>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <!-- Toast -->
+    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+         x-show="toastState.show"
+         x-transition.opacity.duration.160ms>
+      <div class="toast rounded-2xl px-4 py-3 text-sm">
+        <span class="text-smoke/85" x-text="toastState.msg"></span>
+      </div>
+    </div>
+
+    <!-- Zero Inbox Reward Overlay -->
+    <div class="fixed inset-0 z-[60] flex items-center justify-center px-6"
+         x-show="reward.show"
+         x-transition.opacity.duration.240ms
+         style="display:none"
+         aria-modal="true" role="dialog">
+      <div class="absolute inset-0"
+           style="background: radial-gradient(1200px 800px at 50% 35%, rgba(183,134,107,0.18), transparent 60%),
+                          rgba(0,0,0,0.72); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);">
+      </div>
+
+      <div class="relative glass rounded-3xl p-6 md:p-8 max-w-xl w-full border border-white/12 overflow-hidden">
+        <div class="absolute -inset-20 pointer-events-none opacity-60"
+             style="background: radial-gradient(700px 260px at 20% 10%, rgba(199,208,222,0.16), transparent 55%),
+                            radial-gradient(700px 260px at 80% 20%, rgba(183,134,107,0.20), transparent 58%),
+                            radial-gradient(900px 400px at 50% 120%, rgba(176,18,45,0.12), transparent 60%);">
+        </div>
+
+        <div class="relative">
+          <div class="text-xs uppercase tracking-[0.28em] text-smoke/80">Zero Inbox</div>
+          <div class="mt-2 text-2xl font-semibold">Mechanism Complete.</div>
+          <div class="mt-2 text-sm text-smoke/85">
+            Das Uhrwerk greift – weil Disziplin, nicht Chaos, hier den Takt vorgibt.
+          </div>
+
+          <div class="mt-6 flex items-center justify-center">
+            <!-- Simple watchwork SVG (inline, no external assets) -->
+            <svg id="watchwork" viewBox="0 0 420 220" class="w-full max-w-md">
+              <defs>
+                <radialGradient id="goldGlow" cx="50%" cy="40%" r="65%">
+                  <stop offset="0%" stop-color="rgba(183,134,107,0.85)" />
+                  <stop offset="55%" stop-color="rgba(183,134,107,0.20)" />
+                  <stop offset="100%" stop-color="rgba(183,134,107,0.00)" />
+                </radialGradient>
+                <linearGradient id="steel" x1="0" x2="1">
+                  <stop offset="0%" stop-color="rgba(199,208,222,0.18)" />
+                  <stop offset="45%" stop-color="rgba(199,208,222,0.65)" />
+                  <stop offset="100%" stop-color="rgba(199,208,222,0.18)" />
+                </linearGradient>
+              </defs>
+
+              <rect x="0" y="0" width="420" height="220" fill="rgba(0,0,0,0)" />
+              <circle cx="210" cy="110" r="96" fill="url(#goldGlow)" opacity="0.65"></circle>
+
+              <!-- gears -->
+              <g id="gearA" transform="translate(150 110)">
+                <circle r="44" fill="none" stroke="url(#steel)" stroke-width="3"></circle>
+                <circle r="18" fill="none" stroke="rgba(199,208,222,0.55)" stroke-width="2"></circle>
+                <g stroke="rgba(199,208,222,0.55)" stroke-width="3">
+                  <line x1="0" y1="-44" x2="0" y2="-56"></line>
+                  <line x1="38" y1="-22" x2="48" y2="-28"></line>
+                  <line x1="38" y1="22" x2="48" y2="28"></line>
+                  <line x1="0" y1="44" x2="0" y2="56"></line>
+                  <line x1="-38" y1="22" x2="-48" y2="28"></line>
+                  <line x1="-38" y1="-22" x2="-48" y2="-28"></line>
+                </g>
+              </g>
+
+              <g id="gearB" transform="translate(250 110)">
+                <circle r="34" fill="none" stroke="url(#steel)" stroke-width="3"></circle>
+                <circle r="14" fill="none" stroke="rgba(199,208,222,0.55)" stroke-width="2"></circle>
+                <g stroke="rgba(183,134,107,0.65)" stroke-width="3">
+                  <line x1="0" y1="-34" x2="0" y2="-45"></line>
+                  <line x1="30" y1="-16" x2="40" y2="-22"></line>
+                  <line x1="30" y1="16" x2="40" y2="22"></line>
+                  <line x1="0" y1="34" x2="0" y2="45"></line>
+                  <line x1="-30" y1="16" x2="-40" y2="22"></line>
+                  <line x1="-30" y1="-16" x2="-40" y2="-22"></line>
+                </g>
+              </g>
+
+              <!-- bridge -->
+              <path id="bridge" d="M105 62 C170 20, 250 20, 315 62 L305 86 C250 56, 170 56, 115 86 Z"
+                    fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)"></path>
+            </svg>
+          </div>
+
+          <div class="mt-6 flex items-center justify-end gap-3">
+            <button class="btn magnetic rounded-xl px-4 py-3 text-sm"
+                    @click="closeReward()">
+              Back to cockpit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function dashboard() {
+      return {
+        // state
+        tickets: [],
+        expanded: {},
+        query: "",
+        showDismissed: false,
+
+        toastState: { show: false, msg: "" },
+        reward: { show: false, fired: false },
+
+        reducedMotion: false,
+
+        init() {
+          this.reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+          this.tickets = (window.ESCALATIONS || []).map((t) => this.normalizeTicket(t));
+
+          this.loadPersistedDismissals();
+          this.recomputeExpandedKeys();
+
+          this.$nextTick(() => {
+            this.attachMagnetics();
+            this.applyCriticalPulse();
+            this.maybeZeroInbox();
+          });
+
+          window.addEventListener("resize", () => this.attachMagnetics());
+        },
+
+        // ---------- derived ----------
+        get activeTickets() {
+          return this.tickets.filter(t => !t.dismissed);
+        },
+        get dismissedTickets() {
+          return this.tickets.filter(t => t.dismissed);
+        },
+        get counts() {
+          const a = this.filtered(this.activeTickets);
+          const d = this.filtered(this.dismissedTickets);
+          return {
+            t1: a.filter(t => this.tierOf(t.Severity_Index) === 1).length,
+            t2: a.filter(t => this.tierOf(t.Severity_Index) === 2).length,
+            t3: a.filter(t => this.tierOf(t.Severity_Index) === 3).length,
+            dismissed: d.length
+          };
+        },
+        get tier1Filtered() {
+          return this.sorted(this.filtered(this.activeTickets).filter(t => this.tierOf(t.Severity_Index) === 1));
+        },
+        get tier2Filtered() {
+          return this.sorted(this.filtered(this.activeTickets).filter(t => this.tierOf(t.Severity_Index) === 2));
+        },
+        get tier3Filtered() {
+          return this.sorted(this.filtered(this.activeTickets).filter(t => this.tierOf(t.Severity_Index) === 3));
+        },
+        get dismissedFiltered() {
+          return this.sorted(this.filtered(this.dismissedTickets));
+        },
+
+        // ---------- core transforms ----------
+        normalizeTicket(t) {
+          const safe = {
+            Severity_Index: Number(t.Severity_Index ?? 1),
+            Client_Name: String(t.Client_Name ?? "Unnamed"),
+            Context_Briefing: String(t.Context_Briefing ?? ""),
+            Action_Required: String(t.Action_Required ?? ""),
+            Deep_Link: String(t.Deep_Link ?? ""),
+            Timestamp: String(t.Timestamp ?? new Date().toISOString())
+          };
+          safe.Severity_Index = Math.max(1, Math.min(10, safe.Severity_Index));
+
+          const idSeed = `${safe.Severity_Index}|${safe.Client_Name}|${safe.Action_Required}|${safe.Deep_Link}|${safe.Timestamp}`;
+          return {
+            ...safe,
+            id: this.hash(idSeed),
+            dismissed: false
+          };
+        },
+
+        tierOf(sev) {
+          if (sev >= 9) return 1;
+          if (sev >= 6) return 2;
+          return 3;
+        },
+
+        sorted(list) {
+          return [...list].sort((a, b) => {
+            if (b.Severity_Index !== a.Severity_Index) return b.Severity_Index - a.Severity_Index;
+            return (new Date(b.Timestamp)).getTime() - (new Date(a.Timestamp)).getTime();
+          });
+        },
+
+        filtered(list) {
+          const q = (this.query || "").trim().toLowerCase();
+          if (!q) return list;
+          return list.filter(t => {
+            const blob = `${t.Client_Name}\n${t.Context_Briefing}\n${t.Action_Required}\n${t.Deep_Link}`.toLowerCase();
+            return blob.includes(q);
+          });
+        },
+
+        recomputeExpandedKeys() {
+          for (const t of this.tickets) {
+            if (this.expanded[t.id] === undefined) this.expanded[t.id] = false;
+          }
+        },
+
+        // ---------- UI actions ----------
+        toggleExpand(id, evt) {
+          this.expanded[id] = !this.expanded[id];
+          const card = evt.currentTarget.closest("[data-card]");
+          if (!card) return;
+          const details = card.querySelector("[data-details]");
+          if (!details) return;
+
+          if (this.reducedMotion) {
+            details.style.opacity = this.expanded[id] ? "1" : "0";
+            details.style.height = this.expanded[id] ? "auto" : "0";
+            return;
+          }
+
+          if (this.expanded[id]) {
+            // open
+            details.style.display = "block";
+            gsap.killTweensOf(details);
+            gsap.set(details, { height: 0, opacity: 0 });
+            const targetH = details.scrollHeight;
+            gsap.to(details, {
+              height: targetH,
+              opacity: 1,
+              duration: 0.45,
+              ease: "power3.out",
+              onComplete: () => { details.style.height = "auto"; }
+            });
+          } else {
+            // close
+            gsap.killTweensOf(details);
+            const currentH = details.scrollHeight;
+            gsap.set(details, { height: currentH });
+            gsap.to(details, {
+              height: 0,
+              opacity: 0,
+              duration: 0.35,
+              ease: "power2.inOut"
+            });
+          }
+        },
+
+        dismissTicket(t, evt) {
+          const card = evt.currentTarget.closest("[data-card]");
+          t.dismissed = true;
+          this.persistDismissals();
+
+          // collapse if expanded
+          this.expanded[t.id] = false;
+
+          if (this.reducedMotion || !card) {
+            this.toast("Dismissed.");
+            this.$nextTick(() => this.maybeZeroInbox());
+            return;
+          }
+
+          // cinematic deconstruction: particle dispersion + lift/fade
+          this.spawnParticles(card, this.tierOf(t.Severity_Index));
+
+          gsap.to(card, {
+            y: -18,
+            opacity: 0,
+            filter: "blur(2px)",
+            duration: 0.55,
+            ease: "power3.inOut",
+            onComplete: () => {
+              // keep it in DOM via Alpine, but visually reset for archive rendering
+              gsap.set(card, { clearProps: "all" });
+              this.toast("Dismissed (archived).");
+              this.$nextTick(() => {
+                this.applyCriticalPulse();
+                this.maybeZeroInbox();
+              });
+            }
+          });
+        },
+
+        restoreTicket(t) {
+          t.dismissed = false;
+          this.persistDismissals();
+          this.toast("Restored.");
+          this.$nextTick(() => {
+            this.applyCriticalPulse();
+          });
+        },
+
+        restoreAll() {
+          for (const t of this.tickets) t.dismissed = false;
+          this.persistDismissals();
+          this.toast("All restored.");
+          this.$nextTick(() => this.applyCriticalPulse());
+        },
+
+        scrollToSection(id) {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.scrollIntoView({ behavior: this.reducedMotion ? "auto" : "smooth", block: "start" });
+        },
+
+        // ---------- token extraction + copy ----------
+        extractTokens(t) {
+          const text = `${t.Context_Briefing}\n${t.Action_Required}`.toUpperCase();
+
+          const tokens = [];
+          const seen = new Set();
+
+          // IBAN (simplified but practical)
+          const ibanRegex = /\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b/g;
+          for (const m of (text.match(ibanRegex) || [])) {
+            const v = m.replace(/\s+/g, "");
+            if (!seen.has("IBAN:" + v)) {
+              seen.add("IBAN:" + v);
+              tokens.push({ type: "IBAN", value: v });
+            }
+          }
+
+          // phone (broad EU-friendly heuristic)
+          const phoneRegex = /(\+?\d[\d\s().-]{7,}\d)/g;
+          for (const m of (t.Context_Briefing.match(phoneRegex) || [])) {
+            const v = m.replace(/\s+/g, " ").trim();
+            if (v.length >= 9 && v.length <= 22 && !seen.has("TEL:" + v)) {
+              seen.add("TEL:" + v);
+              tokens.push({ type: "TEL", value: v });
+            }
+          }
+
+          // tracking (heuristic: long alnum with digits)
+          const trackingRegex = /\b[A-Z0-9]{8,22}\b/g;
+          for (const m of (text.match(trackingRegex) || [])) {
+            // exclude IBAN-like
+            if (/^[A-Z]{2}\d{2}/.test(m)) continue;
+            // require digits to reduce false positives
+            if (!/\d/.test(m)) continue;
+            if (!seen.has("TRACK:" + m)) {
+              seen.add("TRACK:" + m);
+              tokens.push({ type: "TRACK", value: m });
+            }
+          }
+
+          return tokens.slice(0, 10);
+        },
+
+        async copy(value) {
+          const v = String(value || "");
+          if (!v) return;
+
+          try {
+            if (navigator.clipboard && window.isSecureContext) {
+              await navigator.clipboard.writeText(v);
+            } else {
+              // fallback
+              const ta = document.createElement("textarea");
+              ta.value = v;
+              ta.style.position = "fixed";
+              ta.style.left = "-9999px";
+              document.body.appendChild(ta);
+              ta.focus();
+              ta.select();
+              document.execCommand("copy");
+              document.body.removeChild(ta);
+            }
+            this.toast("Copied: " + v);
+          } catch (e) {
+            this.toast("Copy failed (browser permissions).");
+          }
+        },
+
+        toast(msg) {
+          this.toastState.msg = msg;
+          this.toastState.show = true;
+          clearTimeout(this._toastTimer);
+          this._toastTimer = setTimeout(() => (this.toastState.show = false), 1600);
+        },
+
+        // ---------- persistence ----------
+        persistDismissals() {
+          const dismissedIds = this.tickets.filter(t => t.dismissed).map(t => t.id);
+          localStorage.setItem("cockpit.dismissed", JSON.stringify(dismissedIds));
+        },
+
+        loadPersistedDismissals() {
+          try {
+            const raw = localStorage.getItem("cockpit.dismissed");
+            if (!raw) return;
+            const ids = new Set(JSON.parse(raw));
+            for (const t of this.tickets) t.dismissed = ids.has(t.id);
+          } catch (_) { /* ignore */ }
+        },
+
+        // ---------- aesthetics / motion ----------
+        applyCriticalPulse() {
+          if (this.reducedMotion) return;
+
+          // kill existing
+          gsap.killTweensOf("[data-critical-halo]");
+
+          // apply only to current tier1 cards
+          document.querySelectorAll("[data-card]").forEach(card => {
+            const id = card.getAttribute("data-id");
+            const t = this.tickets.find(x => x.id === id);
+            if (!t) return;
+
+            const halo = card.querySelector("[data-critical-halo]");
+            if (!halo) return;
+
+            if (!t.dismissed && this.tierOf(t.Severity_Index) === 1) {
+              gsap.set(halo, {
+                opacity: 0.55,
+                background: "radial-gradient(420px 220px at 50% 30%, rgba(209,30,58,0.22), transparent 62%)"
+              });
+              gsap.to(halo, {
+                opacity: 0.95,
+                duration: 1.15,
+                ease: "sine.inOut",
+                yoyo: true,
+                repeat: -1
+              });
+            } else {
+              gsap.set(halo, { opacity: 0 });
+            }
+          });
+        },
+
+        spawnParticles(card, tier) {
+          if (this.reducedMotion) return;
+
+          const rect = card.getBoundingClientRect();
+          const container = document.createElement("div");
+          container.style.position = "fixed";
+          container.style.left = rect.left + "px";
+          container.style.top = rect.top + "px";
+          container.style.width = rect.width + "px";
+          container.style.height = rect.height + "px";
+          container.style.pointerEvents = "none";
+          container.style.zIndex = "80";
+          document.body.appendChild(container);
+
+          const color = tier === 1 ? "rgba(209,30,58,0.95)" : (tier === 2 ? "rgba(183,134,107,0.9)" : "rgba(199,208,222,0.85)");
+
+          const n = 18;
+          for (let i = 0; i < n; i++) {
+            const p = document.createElement("div");
+            const s = 6 + Math.random() * 10;
+            p.style.position = "absolute";
+            p.style.left = (rect.width * (0.35 + Math.random() * 0.30)) + "px";
+            p.style.top = (rect.height * (0.25 + Math.random() * 0.50)) + "px";
+            p.style.width = s + "px";
+            p.style.height = s + "px";
+            p.style.borderRadius = (Math.random() > 0.55 ? "999px" : "6px");
+            p.style.background = `linear-gradient(180deg, ${color}, rgba(255,255,255,0.18))`;
+            p.style.boxShadow = "0 14px 40px rgba(0,0,0,0.55)";
+            p.style.opacity = "0.95";
+            container.appendChild(p);
+
+            gsap.to(p, {
+              x: (Math.random() - 0.5) * rect.width * 0.9,
+              y: -20 - Math.random() * 80,
+              rotation: (Math.random() - 0.5) * 220,
+              opacity: 0,
+              scale: 0.6 + Math.random() * 0.4,
+              duration: 0.65 + Math.random() * 0.25,
+              ease: "power3.out"
+            });
+          }
+
+          gsap.to(container, {
+            opacity: 0,
+            duration: 0.9,
+            ease: "power2.out",
+            onComplete: () => container.remove()
+          });
+        },
+
+        attachMagnetics() {
+          // magnetic buttons (subtle, expensive-feeling)
+          if (this.reducedMotion) return;
+
+          const els = document.querySelectorAll(".magnetic");
+          els.forEach(el => {
+            if (el._magnetAttached) return;
+            el._magnetAttached = true;
+
+            const strength = 10; // px
+            const xTo = gsap.quickTo(el, "x", { duration: 0.35, ease: "power3.out" });
+            const yTo = gsap.quickTo(el, "y", { duration: 0.35, ease: "power3.out" });
+
+            const onMove = (e) => {
+              const r = el.getBoundingClientRect();
+              const cx = r.left + r.width / 2;
+              const cy = r.top + r.height / 2;
+              const dx = (e.clientX - cx) / (r.width / 2);
+              const dy = (e.clientY - cy) / (r.height / 2);
+              xTo(Math.max(-1, Math.min(1, dx)) * strength);
+              yTo(Math.max(-1, Math.min(1, dy)) * strength);
+            };
+
+            const onLeave = () => { xTo(0); yTo(0); };
+
+            el.addEventListener("mousemove", onMove);
+            el.addEventListener("mouseleave", onLeave);
+          });
+        },
+
+        maybeZeroInbox() {
+          if (this.reward.fired) return;
+
+          const activeCount = this.activeTickets.length;
+          if (activeCount === 0) {
+            this.reward.fired = true;
+            this.openReward();
+          }
+        },
+
+        openReward() {
+          this.reward.show = true;
+          this.$nextTick(() => this.animateWatchwork());
+        },
+
+        closeReward() {
+          this.reward.show = false;
+        },
+
+        animateWatchwork() {
+          if (this.reducedMotion) return;
+          const a = document.getElementById("gearA");
+          const b = document.getElementById("gearB");
+          const bridge = document.getElementById("bridge");
+          if (!a || !b || !bridge) return;
+
+          gsap.set([a, b, bridge], { opacity: 0, y: 10, transformOrigin: "50% 50%" });
+
+          const tl = gsap.timeline();
+          tl.to([a, b, bridge], { opacity: 1, y: 0, duration: 0.55, ease: "power3.out", stagger: 0.08 })
+            .to(a, { rotation: 360, duration: 3.2, ease: "none", repeat: -1 }, ">")
+            .to(b, { rotation: -520, duration: 3.2, ease: "none", repeat: -1 }, "<");
+        },
+
+        // ---------- time formatting ----------
+        formatExact(iso) {
+          const d = new Date(iso);
+          if (isNaN(d.getTime())) return iso;
+          return d.toLocaleString(undefined, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+        },
+
+        formatRelative(iso) {
+          const d = new Date(iso);
+          if (isNaN(d.getTime())) return iso;
+          const diffMs = Date.now() - d.getTime();
+          const m = Math.round(diffMs / 60000);
+          if (m < 1) return "just now";
+          if (m < 60) return `${m}m ago`;
+          const h = Math.round(m / 60);
+          if (h < 24) return `${h}h ago`;
+          const days = Math.round(h / 24);
+          return `${days}d ago`;
+        },
+
+        // ---------- util ----------
+        hash(str) {
+          // FNV-1a-ish (small, stable, good enough for local IDs)
+          let h = 2166136261;
+          for (let i = 0; i < str.length; i++) {
+            h ^= str.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+          }
+          return ("id_" + (h >>> 0).toString(16));
+        }
+      };
+    }
+  </script>
 </body>
 </html>
