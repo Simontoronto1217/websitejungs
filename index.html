@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHRONEXT // SINGULARITY</title>
+    <title>CHRONEXT // SINGULARITY v7</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,29 +12,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-    
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
 
     <script>
-        // --- CONFIGURATION ---
-        const CLOUD_CONFIG = {
-            BIN_ID: '', // EINFÜGEN
-            API_KEY: '' // EINFÜGEN
-        };
-
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         'void': '#020203',
                         'gold': '#E6C200',
-                        'gold-dim': 'rgba(230, 194, 0, 0.1)',
                         'alert': '#FF2A2A',
                         'glass': 'rgba(255, 255, 255, 0.03)'
                     },
@@ -42,207 +28,236 @@
                         'display': ['Syncopate', 'sans-serif'],
                         'tech': ['Rajdhani', 'sans-serif'],
                         'mono': ['Space Mono', 'monospace'],
+                    },
+                    animation: {
+                        'scanline': 'scanline 6s linear infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        scanline: { '0%': { transform: 'translateY(-100%)' }, '100%': { transform: 'translateY(100%)' } }
                     }
                 }
             }
         }
+
+        // --- HIER IHRE DATEN EINFÜGEN ---
+        const CLOUD_CONFIG = {
+            BIN_ID: '', // Z.B. "65a..." (Hier einfügen!)
+            API_KEY: '' // Z.B. "$2a$10$..." (Hier einfügen!)
+        };
     </script>
 
     <style>
-        body { margin: 0; overflow: hidden; background: #020203; color: #fff; }
+        body { margin: 0; overflow: hidden; background: #020203; color: white; }
         
-        /* LUXURY UI ELEMENTS */
-        .hud-border {
-            position: absolute; pointer-events: none;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: linear-gradient(to bottom, rgba(255,255,255,0.05) 0%, transparent 100%);
+        /* LUXURY UI TWEAKS */
+        .scanlines {
+            position: fixed; inset: 0; pointer-events: none; z-index: 50;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 3px 100%; opacity: 0.6;
         }
-        
+
         .ticket-card {
-            background: linear-gradient(90deg, rgba(0,0,0,0.4) 0%, rgba(20,20,20,0.6) 100%);
-            backdrop-filter: blur(4px);
-            border-left: 2px solid rgba(255,255,255,0.1);
-            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            background: rgba(10, 10, 12, 0.4);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative; overflow: hidden;
+        }
+        .ticket-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 100%;
+            background: #333; transition: background 0.3s;
         }
         .ticket-card:hover {
-            background: linear-gradient(90deg, rgba(230,194,0,0.05) 0%, rgba(0,0,0,0.8) 100%);
-            border-left-color: #E6C200;
-            transform: translateX(10px) scale(1.02);
-            box-shadow: -20px 0 40px rgba(0,0,0,0.5);
-            z-index: 10;
-        }
-
-        /* SCROLLBAR HIDDEN BUT FUNCTIONAL */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* INTRO OVERLAY */
-        #intro-curtain {
-            background: #000; z-index: 100;
+            transform: translateX(10px) scale(1.01);
+            background: rgba(20, 20, 20, 0.8);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.8);
+            border-color: rgba(230, 194, 0, 0.3);
         }
         
-        /* GLITCH TEXT EFFECT */
-        .glitch-hover:hover {
-            animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
-            color: #E6C200;
-        }
+        /* Scrollbar */
+        .scroller::-webkit-scrollbar { width: 0px; background: transparent; }
+        
+        /* Glitch Text */
+        .glitch-text:hover { animation: glitch 0.3s infinite; color: #E6C200; cursor: pointer; }
         @keyframes glitch {
-            0% { transform: translate(0) }
-            20% { transform: translate(-2px, 2px) }
-            40% { transform: translate(-2px, -2px) }
-            60% { transform: translate(2px, 2px) }
-            80% { transform: translate(2px, -2px) }
-            100% { transform: translate(0) }
+            0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) } 100% { transform: translate(0) }
         }
-
-        .modal-blur { backdrop-filter: blur(20px); }
+        
+        /* Loading Overlay */
+        #intro-screen {
+            background: #000; z-index: 100; position: fixed; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
     </style>
 </head>
 
-<body x-data="singularity()" class="font-tech">
+<body x-data="singularity()" class="font-tech antialiased">
 
-    <div id="webgl-container" class="fixed inset-0 z-0"></div>
+    <div id="canvas-container" class="fixed inset-0 z-0"></div>
+    <div class="scanlines"></div>
 
-    <div id="intro-curtain" class="fixed inset-0 flex items-center justify-center pointer-events-none">
-        <div class="text-center">
-            <h1 class="font-display text-4xl tracking-[0.5em] text-gold opacity-0 intro-text">SINGULARITY</h1>
-            <div class="h-[1px] w-0 bg-white mx-auto mt-4 intro-line"></div>
+    <div id="intro-screen">
+        <h1 class="font-display text-4xl text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 tracking-[0.5em] animate-pulse">
+            LOADING CORE
+        </h1>
+        <div class="w-64 h-0.5 bg-gray-800 mt-4 overflow-hidden">
+            <div class="h-full bg-gold w-0" id="intro-bar"></div>
         </div>
     </div>
 
-    <main class="relative z-10 w-full h-screen flex p-8 gap-8 opacity-0 main-interface">
+    <main class="relative z-10 w-full h-screen flex p-4 lg:p-8 gap-8 opacity-0" id="main-interface">
         
-        <div class="w-2/3 h-full flex flex-col relative">
-            <header class="flex justify-between items-end mb-8 border-b border-white/10 pb-4">
+        <div class="w-2/3 flex flex-col h-full relative z-20">
+            <header class="flex justify-between items-end mb-6 pb-4 border-b border-white/10 bg-gradient-to-r from-black/50 to-transparent backdrop-blur-sm p-4 rounded-sm">
                 <div>
-                    <div class="flex items-center gap-2 text-gold/50 font-mono text-xs mb-1">
-                        <div class="w-1.5 h-1.5 bg-gold rounded-full animate-pulse"></div>
-                        <span x-text="connectionStatus"></span> // <span x-text="tickets.length + ' ACTIVE ENTITIES'"></span>
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-2 h-2 rounded-full" :class="statusColor"></div>
+                        <span class="font-mono text-[10px] text-gray-400 tracking-widest" x-text="statusText"></span>
                     </div>
-                    <h1 class="font-display text-3xl tracking-widest text-white">CHRONEXT<span class="text-gold">_OPS</span></h1>
+                    <h1 class="font-display text-3xl text-white">CHRONEXT<span class="text-gold">_OPS</span></h1>
                 </div>
                 <div class="flex gap-4">
-                    <button @click="openModal()" class="px-6 py-2 border border-white/20 hover:border-gold hover:text-gold hover:bg-gold/5 transition-all font-mono text-xs tracking-widest uppercase glitch-hover">
-                        [ + ] INJECT DATA
+                    <button @click="openModal()" class="px-6 py-2 border border-white/20 hover:border-gold hover:text-gold hover:bg-gold/5 transition-all font-mono text-xs tracking-widest uppercase bg-black/40 backdrop-blur">
+                        [ + ] NEW INTEL
                     </button>
-                    <button @click="syncData()" class="w-10 h-10 border border-white/20 flex items-center justify-center hover:bg-white/10 transition-all">
-                         <svg class="w-4 h-4 text-white" :class="isLoading ? 'animate-spin text-gold' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path><path d="M21 12v9"></path></svg>
+                    <button @click="syncData()" class="w-10 h-10 border border-white/20 flex items-center justify-center hover:bg-white/10 transition-all bg-black/40">
+                        <svg class="w-4 h-4 text-gray-400" :class="{'animate-spin text-gold': isLoading}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     </button>
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto no-scrollbar pr-4 space-y-3 relative perspective-container">
-                <template x-for="(ticket, index) in sortedTickets" :key="ticket.id">
-                    <div :id="'ticket-'+ticket.id" 
-                         class="ticket-card p-5 relative group cursor-default"
-                         @mouseenter="hoverTicket(ticket.severity)"
-                         @mouseleave="resetEnvironment()">
-                        
-                        <div class="absolute left-0 top-0 bottom-0 w-[2px]" 
-                             :class="ticket.severity >= 9 ? 'bg-alert shadow-[0_0_15px_#f00]' : (ticket.severity >= 6 ? 'bg-gold shadow-[0_0_10px_#fd0]' : 'bg-gray-500')"></div>
+            <div class="flex-1 overflow-y-auto scroller space-y-3 pb-10">
+                <template x-for="ticket in sortedTickets" :key="ticket.id">
+                    <div :id="'t-'+ticket.id" class="ticket-card p-4 group"
+                         :class="ticket.severity >= 9 ? 'hover:border-l-alert' : 'hover:border-l-gold'">
+                         
+                        <div class="absolute left-0 top-0 bottom-0 w-[3px] transition-colors duration-300"
+                             :class="ticket.severity >= 9 ? 'bg-alert' : (ticket.severity >= 6 ? 'bg-gold' : 'bg-gray-600')"></div>
 
-                        <div class="flex justify-between items-start">
+                        <div class="flex justify-between items-start pl-3">
                             <div class="w-3/4">
                                 <div class="flex items-center gap-3 mb-1">
-                                    <span class="font-display text-lg font-bold" :class="ticket.severity>=9 ? 'text-alert' : 'text-white'" x-text="ticket.severity"></span>
+                                    <span class="font-display font-bold text-lg" :class="ticket.severity >= 9 ? 'text-alert' : 'text-white'" x-text="ticket.severity"></span>
                                     <span class="font-mono text-xs text-gray-500" x-text="ticket.ref_id"></span>
-                                    <span class="font-bold tracking-wide text-white" x-text="ticket.client"></span>
+                                    <span class="font-bold text-sm tracking-wide" x-text="ticket.client"></span>
                                 </div>
-                                <p class="text-gray-400 text-sm font-light leading-relaxed font-sans opacity-80 group-hover:opacity-100 transition-opacity" x-text="ticket.context"></p>
+                                <p class="text-xs text-gray-400 font-sans leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity" x-text="ticket.context"></p>
                                 
-                                <div class="flex flex-wrap gap-2 mt-3">
-                                    <span class="text-[10px] font-mono border border-white/10 px-2 py-0.5 text-gray-400 uppercase" x-text="ticket.action"></span>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    <span class="text-[9px] font-mono border border-white/10 px-1.5 py-0.5 text-gray-500 uppercase rounded-sm" x-text="ticket.action"></span>
                                     <template x-if="ticket.wait_time_alert">
-                                        <span class="text-[10px] font-mono border border-alert/30 text-alert px-2 py-0.5 uppercase animate-pulse" x-text="ticket.wait_time_alert"></span>
+                                        <div class="flex items-center gap-1 border border-alert/30 px-1.5 py-0.5 bg-alert/5">
+                                            <span class="w-1 h-1 bg-alert rounded-full animate-pulse"></span>
+                                            <span class="text-[9px] font-mono text-alert uppercase" x-text="ticket.wait_time_alert"></span>
+                                        </div>
                                     </template>
                                     <template x-if="ticket.meta_copy">
-                                        <button @click="copy(ticket.meta_copy)" class="text-[10px] font-mono bg-white/5 hover:bg-gold hover:text-black px-2 py-0.5 transition-colors uppercase">
+                                        <button @click="copy(ticket.meta_copy)" class="text-[9px] font-mono bg-white/5 hover:bg-gold hover:text-black px-1.5 py-0.5 transition-colors uppercase border border-transparent hover:border-gold">
                                             COPY DATA
                                         </button>
                                     </template>
                                 </div>
                             </div>
 
-                            <div class="flex flex-col gap-2 items-end opacity-20 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
+                            <div class="flex flex-col items-end gap-2 opacity-30 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0 duration-300">
                                 <template x-if="ticket.link">
-                                    <a :href="ticket.link" target="_blank" class="text-[10px] font-mono hover:text-gold tracking-widest border-b border-transparent hover:border-gold">OPEN LINK ↗</a>
+                                    <a :href="ticket.link" target="_blank" class="text-[9px] font-mono hover:text-gold border-b border-transparent hover:border-gold pb-0.5">OPEN LINK</a>
                                 </template>
-                                <button @click="archive(ticket.id)" class="text-[10px] font-mono hover:text-alert tracking-widest border-b border-transparent hover:border-alert">RESOLVE_CASE</button>
+                                <button @click="archive(ticket.id)" class="text-[9px] font-mono hover:text-alert border-b border-transparent hover:border-alert pb-0.5">RESOLVE</button>
                             </div>
                         </div>
                     </div>
                 </template>
-
-                <div x-show="tickets.length === 0" class="h-full flex flex-col items-center justify-center">
-                    <h2 class="font-display text-2xl text-gold animate-pulse">SYSTEM STABLE</h2>
-                    <p class="font-mono text-xs text-gray-600 mt-2">NO ANOMALIES DETECTED</p>
+                
+                <div x-show="tickets.length === 0" class="h-64 flex flex-col items-center justify-center text-gray-600">
+                    <span class="text-4xl text-gold mb-2 animate-bounce">❖</span>
+                    <span class="font-display tracking-widest text-sm">NO ACTIVE THREATS</span>
                 </div>
             </div>
         </div>
 
-        <div class="w-1/3 h-full flex flex-col justify-end pointer-events-none pb-8 pl-8 border-l border-white/5">
-            <div class="glass-hud p-6 relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-2 opacity-50">
-                    <svg class="w-8 h-8 text-gold animate-[spin_10s_linear_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke-width="1" stroke-dasharray="4 4"></path></svg>
+        <div class="w-1/3 flex flex-col justify-end p-8 border-l border-white/5 pointer-events-none relative z-20">
+            <div class="bg-black/60 backdrop-blur-md p-6 border border-white/10 shadow-2xl rounded-sm">
+                <h3 class="font-display text-xl text-white mb-4">GRAVITY WELL STATUS</h3>
+                
+                <div class="mb-6">
+                    <div class="flex justify-between text-[10px] font-mono text-gray-500 mb-1">
+                        <span>ENTROPY_LEVEL</span>
+                        <span x-text="stressLevel + '%'"></span>
+                    </div>
+                    <div class="w-full h-1 bg-gray-800 relative overflow-hidden">
+                        <div class="h-full absolute left-0 top-0 transition-all duration-1000 ease-out"
+                             :class="stressLevel > 50 ? 'bg-alert' : 'bg-gold'"
+                             :style="'width: ' + stressLevel + '%'"></div>
+                    </div>
                 </div>
-                <h3 class="font-display text-xl text-white mb-2">GRAVITY WELL</h3>
-                <div class="space-y-4">
-                    <div>
-                        <div class="flex justify-between text-[10px] font-mono text-gray-500 mb-1">
-                            <span>STRESS_LEVEL</span>
-                            <span x-text="calculateStress() + '%'"></span>
-                        </div>
-                        <div class="w-full h-1 bg-gray-800">
-                            <div class="h-full bg-gradient-to-r from-gold to-alert transition-all duration-1000" :style="'width: ' + calculateStress() + '%'"></div>
-                        </div>
-                    </div>
-                    <div class="text-xs text-gray-400 font-light leading-relaxed">
-                        <span class="text-gold font-mono">[SISYPHUS_PROTOCOL]</span>
-                        <span x-show="tickets.length > 0">Active anomalies detected. Temporal distortions analyzed. Suggest immediate resolution of Priority 10 items.</span>
-                        <span x-show="tickets.length === 0">Singularity achieved. Event horizon stable. Waiting for input stream.</span>
-                    </div>
+                
+                <div class="font-mono text-[10px] leading-relaxed text-gray-400">
+                    <p class="mb-2 text-gold">[ SYSTEM LOG ]</p>
+                    <p x-show="tickets.length > 0">Detected <span x-text="tickets.length" class="text-white"></span> active operational anomalies. Visual distortion field active. Prioritize Severity 10 items.</p>
+                    <p x-show="tickets.length === 0">System stabilized. Singularity maintained. Awaiting input stream.</p>
                 </div>
             </div>
         </div>
+
     </main>
 
     <div x-show="showModal" 
-         x-transition.opacity.duration.500ms
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 modal-blur">
+         x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-lg">
         
-        <div class="w-full max-w-5xl bg-black border border-white/10 shadow-[0_0_50px_rgba(230,194,0,0.1)] flex h-[70vh]">
+        <div class="w-full max-w-6xl h-[80vh] bg-[#050505] border border-white/10 flex shadow-2xl">
             <div class="w-1/2 p-8 border-r border-white/10 flex flex-col">
-                <h2 class="font-display text-xl text-gold mb-4">DATA STREAM INPUT</h2>
-                <textarea x-model="rawData" class="flex-1 bg-[#050505] border border-white/10 p-4 text-xs font-mono text-gold focus:border-gold outline-none resize-none leading-relaxed" placeholder="PASTE EMAIL / SLACK / TICKET DATA HERE..."></textarea>
-                <div class="flex gap-4 mt-4">
-                    <button @click="showModal = false" class="px-6 py-3 font-mono text-xs border border-white/10 text-gray-500 hover:text-white">ABORT</button>
-                    <button @click="processInput()" class="flex-1 px-6 py-3 bg-white/5 border border-gold text-gold font-display text-xs tracking-widest hover:bg-gold hover:text-black transition-all">
-                        <span x-show="!isProcessing">ANALYZE</span>
-                        <span x-show="isProcessing" class="animate-pulse">PROCESSING...</span>
+                <h2 class="font-display text-2xl text-gold mb-2">DATA INJECTION</h2>
+                <p class="font-mono text-[10px] text-gray-500 mb-6">PASTE RAW COMMUNICATION LOGS. AI WILL PARSE CONTEXT & URGENCY.</p>
+                
+                <textarea x-model="rawData" class="flex-1 bg-black/50 border border-white/10 p-4 font-mono text-xs text-gold resize-none outline-none focus:border-gold transition-colors leading-relaxed" placeholder="Paste emails, slack messages or support tickets here..."></textarea>
+                
+                <div class="flex gap-4 mt-6">
+                    <button @click="showModal = false" class="px-6 py-3 font-mono text-xs border border-white/10 text-gray-500 hover:text-white hover:bg-white/5 transition-all">CANCEL</button>
+                    <button @click="processInput()" class="flex-1 px-6 py-3 bg-gold/10 border border-gold text-gold font-display text-xs tracking-widest hover:bg-gold hover:text-black transition-all font-bold">
+                        <span x-show="!isProcessing">ANALYZE STREAM</span>
+                        <span x-show="isProcessing" class="animate-pulse">DECODING...</span>
                     </button>
                 </div>
             </div>
-            <div class="w-1/2 p-8 bg-[#080808] flex flex-col">
-                <h2 class="font-display text-xl text-gray-500 mb-4 flex justify-between">
-                    <span>DECODED</span>
-                    <span x-text="detectedCases.length" class="text-white"></span>
-                </h2>
-                <div class="flex-1 overflow-y-auto no-scrollbar space-y-2">
+            
+            <div class="w-1/2 p-8 bg-[#0a0a0c] flex flex-col relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-3xl rounded-full pointer-events-none"></div>
+                
+                <div class="flex justify-between items-end mb-6">
+                    <h2 class="font-display text-xl text-white">DECODED ENTITIES</h2>
+                    <span class="font-mono text-gold text-xs border border-gold/20 px-2 py-1" x-text="detectedCases.length + ' FOUND'"></span>
+                </div>
+
+                <div class="flex-1 overflow-y-auto scroller space-y-2 pr-2">
                     <template x-for="(c, i) in detectedCases" :key="i">
-                        <div class="p-3 border border-white/5 bg-white/5 relative group hover:border-gold/30 transition-colors">
-                            <div class="flex justify-between mb-1">
-                                <span class="font-bold text-gold" x-text="c.severity"></span>
-                                <span class="text-[9px] font-mono text-gray-400" x-text="c.action"></span>
+                        <div class="p-3 bg-white/5 border border-white/5 hover:border-gold/50 transition-colors group relative rounded-sm">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-display font-bold" :class="c.severity >= 9 ? 'text-alert' : 'text-gold'" x-text="'LVL ' + c.severity"></span>
+                                <span class="font-mono text-[9px] text-gray-500 uppercase" x-text="c.action"></span>
                             </div>
-                            <input x-model="c.client" class="bg-transparent text-white font-bold text-sm w-full outline-none mb-1">
-                            <div class="text-[10px] text-gray-500 truncate" x-text="c.context"></div>
-                            <div x-show="c.wait_time_alert" class="text-[9px] text-alert mt-1 font-mono uppercase" x-text="c.wait_time_alert"></div>
-                            <button @click="detectedCases.splice(i, 1)" class="absolute top-2 right-2 text-gray-600 hover:text-alert opacity-0 group-hover:opacity-100">✕</button>
+                            <input x-model="c.client" class="w-full bg-transparent border-none p-0 font-sans font-bold text-sm text-white focus:ring-0 mb-1">
+                            <div class="text-[10px] font-mono text-gray-400 truncate" x-text="c.context"></div>
+                            
+                            <div x-show="c.wait_time_alert" class="mt-2 inline-flex items-center gap-2 border border-alert/30 px-2 py-1">
+                                <span class="w-1 h-1 bg-alert rounded-full animate-ping"></span>
+                                <span class="text-[9px] font-mono text-alert uppercase" x-text="c.wait_time_alert"></span>
+                            </div>
+                            
+                            <button @click="detectedCases.splice(i, 1)" class="absolute top-2 right-2 text-gray-600 hover:text-alert opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
                         </div>
                     </template>
+                    <div x-show="detectedCases.length === 0" class="h-full flex items-center justify-center text-gray-800 font-mono text-[10px]">
+                        AWAITING INPUT DATA...
+                    </div>
                 </div>
-                <button x-show="detectedCases.length > 0" @click="confirmImport()" class="mt-4 w-full py-3 bg-gold text-black font-display font-bold hover:bg-white transition-colors">
-                    COMMIT DATA
+
+                <button x-show="detectedCases.length > 0" @click="confirmImport()" class="mt-4 w-full py-4 bg-gold text-black font-display font-bold tracking-widest hover:bg-white transition-colors">
+                    COMMIT TO DATABASE
                 </button>
             </div>
         </div>
@@ -257,65 +272,94 @@
                 showModal: false,
                 isProcessing: false,
                 isLoading: false,
-                connectionStatus: 'OFFLINE',
                 
-                // ThreeJS Refs
-                scene: null, camera: null, renderer: null, particles: null, bloomComposer: null,
-                
-                async init() {
-                    this.init3D();
-                    this.introSequence();
-                    
-                    if(CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) {
-                        this.connectionStatus = 'ONLINE';
-                        await this.loadFromCloud();
-                    } else {
-                        const local = localStorage.getItem('chronext_v6');
-                        if(local) this.tickets = JSON.parse(local);
-                    }
-                    this.updateEnvironment();
+                // Computed logic helpers
+                get stressLevel() {
+                    if (this.tickets.length === 0) return 0;
+                    const total = this.tickets.reduce((acc, t) => acc + t.severity, 0);
+                    return Math.min(total, 100);
+                },
+                get statusText() {
+                    return (CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) ? 'ONLINE (CLOUD SYNC)' : 'OFFLINE (LOCAL STORAGE)';
+                },
+                get statusColor() {
+                    return (CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) ? 'bg-green-500 shadow-[0_0_10px_#0f0]' : 'bg-gray-500';
                 },
 
-                // --- 1. INTELLIGENCE PARSER (Enhanced) ---
+                // --- INIT SEQUENCE ---
+                async init() {
+                    this.init3D(); // Start Visuals immediately
+                    
+                    // Intro Animation
+                    const tl = gsap.timeline();
+                    tl.to("#intro-bar", { width: "100%", duration: 1.5, ease: "power2.inOut" })
+                      .to("#intro-screen", { opacity: 0, duration: 0.5, onComplete: () => document.getElementById("intro-screen").remove() })
+                      .to("#main-interface", { opacity: 1, duration: 1 });
+
+                    // Data Load
+                    if(CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) {
+                        await this.loadFromCloud();
+                    } else {
+                        console.log("Running in Local Mode");
+                        const local = localStorage.getItem('chronext_v7');
+                        if(local) this.tickets = JSON.parse(local);
+                    }
+                    this.updateVisuals();
+                },
+
+                // --- 1. INTELLIGENCE ENGINE (Regex + Time Logic) ---
                 processInput() {
                     this.isProcessing = true;
                     this.detectedCases = [];
+                    
                     setTimeout(() => {
                         const text = this.rawData;
-                        // Regex Logic
+                        // Split Logic: Try splitting by double newline first, fallback to regex keywords
                         let chunks = text.replace(/\n\s*\n/g, '|||').split('|||');
-                        if(chunks.length < 2 && text.length > 100) chunks = text.split(/(?=https:\/\/|Bitte|SR\d)/g);
+                        if(chunks.length < 2 && text.length > 150) {
+                            chunks = text.split(/(?=https:\/\/|Bitte|SR\d|PO\d)/g);
+                        }
 
                         chunks.forEach(chunk => {
-                            if(chunk.length < 15) return;
-                            let severity = 5, action = "REVIEW", waitAlert = null;
-
-                            // Date Logic
+                            if(chunk.length < 15) return; // Skip noise
+                            
+                            let severity = 5;
+                            let action = "REVIEW";
+                            let waitAlert = null;
+                            
+                            // A. Temporal Analysis (German Months)
                             const months = ['jan','feb','mär','apr','mai','jun','jul','aug','sep','okt','nov','dez'];
                             const mMatch = chunk.match(new RegExp(`(?:seit|vom|ab)\\s+(${months.join('|')})`, 'i'));
+                            
                             if(mMatch) {
-                                let mIdx = months.findIndex(m => mMatch[1].toLowerCase().startsWith(m));
+                                const mIdx = months.findIndex(m => mMatch[1].toLowerCase().startsWith(m));
                                 let diff = new Date().getMonth() - mIdx;
-                                if(diff < 0) diff += 12;
-                                if(diff >= 2) { severity += 3; waitAlert = `WAITING ${diff} MONTHS`; action = "DE-ESCALATE"; }
+                                if(diff < 0) diff += 12; // Wrap year
+                                if(diff >= 1) { severity += 2; action = "UPDATE CLIENT"; }
+                                if(diff >= 3) { severity += 3; waitAlert = `CRITICAL: ${diff} MONTHS WAITING`; action = "DE-ESCALATE"; }
                             }
 
-                            // Keywords
-                            if(/anwalt|lawyer|polizei|frist/i.test(chunk)) { severity = 10; action = "LEGAL"; }
-                            else if(/geld|iban|auszahlung/i.test(chunk)) { severity += 1; action = "FINANCE"; }
-                            else if(/dhl|versand/i.test(chunk)) { severity += 1; action = "LOGISTICS"; }
-                            else if(/rückruf/i.test(chunk) && action === "REVIEW") action = "CALLBACK";
+                            // B. Keyword Scoring
+                            if(/anwalt|lawyer|polizei|betrug|deadline/i.test(chunk)) { severity = 10; action = "LEGAL THREAT"; }
+                            else if(/geld|iban|auszahlung|refund/i.test(chunk)) { severity += 1; action = "FINANCE"; }
+                            else if(/dhl|versand|retoure|driver/i.test(chunk)) { severity += 1; action = "LOGISTICS"; }
+                            else if(/rückruf|call/i.test(chunk) && action === "REVIEW") { action = "CALLBACK"; }
 
-                            // Extract
+                            // C. Extraction
                             const link = (chunk.match(/https?:\/\/[^\s]+/) || [''])[0];
                             const ref = (chunk.match(/(SR\d+|PO\d+|#\d+)/i) || [''])[0].toUpperCase();
                             const meta = (chunk.match(/(\+49[\d\s]+|DE\d{20,})/) || [''])[0].replace(/\s/g,'');
-                            let client = (chunk.match(/(?:Herr|Frau|Mr|Mrs)\.?\s+([A-ZÄÖÜ][a-zäöü]+(?:\s[A-ZÄÖÜ][a-zäöü]+)?)/) || [])[1] || ref || "Unknown";
+                            
+                            // Client Name Logic
+                            let client = (chunk.match(/(?:Herr|Frau|Mr|Mrs)\.?\s+([A-ZÄÖÜ][a-zäöü]+(?:\s[A-ZÄÖÜ][a-zäöü]+)?)/) || [])[1];
+                            if(!client) client = ref ? `Case ${ref}` : "Unknown Client";
 
                             this.detectedCases.push({
                                 id: Date.now() + Math.random(),
-                                client, ref_id: ref, context: chunk.replace(link,'').substring(0,120).trim() + "...",
-                                severity: Math.min(severity, 10), action, link, meta_copy: meta, wait_time_alert: waitAlert
+                                client, ref_id: ref, 
+                                context: chunk.replace(link,'').substring(0,140).trim() + "...",
+                                severity: Math.min(severity, 10), 
+                                action, link, meta_copy: meta, wait_time_alert: waitAlert
                             });
                         });
                         this.isProcessing = false;
@@ -328,23 +372,26 @@
                     this.showModal = false;
                     this.rawData = '';
                     await this.saveToCloud();
-                    this.updateEnvironment();
+                    this.updateVisuals();
                 },
 
-                // --- 2. DATA OPS ---
+                // --- 2. DATA OPERATIONS ---
                 async loadFromCloud() {
                     this.isLoading = true;
                     try {
-                        const res = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}/latest`, { headers: { 'X-Master-Key': CLOUD_CONFIG.API_KEY } });
+                        const res = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}/latest`, { 
+                            headers: { 'X-Master-Key': CLOUD_CONFIG.API_KEY } 
+                        });
                         const data = await res.json();
                         this.tickets = Array.isArray(data.record) ? data.record : [];
-                    } catch(e) { console.error(e); }
+                    } catch(e) { console.error("Sync Error", e); }
                     this.isLoading = false;
-                    this.updateEnvironment();
+                    this.updateVisuals();
                 },
+
                 async saveToCloud() {
-                    if(this.connectionStatus === 'OFFLINE') {
-                        localStorage.setItem('chronext_v6', JSON.stringify(this.tickets));
+                    if(!CLOUD_CONFIG.BIN_ID) {
+                        localStorage.setItem('chronext_v7', JSON.stringify(this.tickets));
                         return;
                     }
                     this.isLoading = true;
@@ -355,106 +402,84 @@
                     });
                     this.isLoading = false;
                 },
+
                 archive(id) {
-                    const el = document.getElementById('ticket-'+id);
-                    gsap.to(el, { x: 100, opacity: 0, duration: 0.5, onComplete: async () => {
+                    const el = document.getElementById('t-'+id);
+                    gsap.to(el, { x: 50, opacity: 0, duration: 0.3, onComplete: async () => {
                         this.tickets = this.tickets.filter(t => t.id !== id);
                         await this.saveToCloud();
-                        this.updateEnvironment();
-                        this.warpEffect(); // Visual Reward
+                        this.updateVisuals();
                     }});
                 },
                 copy(t) { navigator.clipboard.writeText(t); },
                 openModal() { this.showModal = true; this.rawData = ''; this.detectedCases = []; },
                 get sortedTickets() { return this.tickets.sort((a,b) => b.severity - a.severity); },
-                calculateStress() { return Math.min(this.tickets.reduce((acc, t) => acc + t.severity, 0), 100); },
 
-                // --- 3. VISUAL ENGINE (ThreeJS + Bloom) ---
+                // --- 3. VISUAL ENGINE (Crash-Proof ThreeJS) ---
                 init3D() {
-                    const container = document.getElementById('webgl-container');
-                    this.scene = new THREE.Scene();
-                    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-                    this.camera.position.z = 20;
+                    const container = document.getElementById('canvas-container');
+                    const scene = new THREE.Scene();
+                    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                    const renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
                     
-                    this.renderer = new THREE.WebGLRenderer({antialias: true});
-                    this.renderer.setSize(window.innerWidth, window.innerHeight);
-                    this.renderer.setPixelRatio(window.devicePixelRatio);
-                    container.appendChild(this.renderer.domElement);
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    renderer.setPixelRatio(window.devicePixelRatio);
+                    container.appendChild(renderer.domElement);
+                    camera.position.z = 30;
 
-                    // POST PROCESSING (BLOOM)
-                    const renderScene = new THREE.RenderPass(this.scene, this.camera);
-                    this.bloomComposer = new THREE.EffectComposer(this.renderer);
-                    this.bloomComposer.addPass(renderScene);
-                    
-                    const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-                    bloomPass.threshold = 0; bloomPass.strength = 1.2; bloomPass.radius = 0.5;
-                    this.bloomComposer.addPass(bloomPass);
-
-                    // PARTICLES (The Event Horizon)
+                    // Particle System (Glowing effect via AdditiveBlending)
                     const pGeo = new THREE.BufferGeometry();
-                    const pCount = 2000;
+                    const pCount = 1500;
                     const posArray = new Float32Array(pCount * 3);
-                    
-                    for(let i=0; i<pCount * 3; i++) {
-                        posArray[i] = (Math.random() - 0.5) * 60; 
-                    }
-                    
+                    for(let i=0; i<pCount*3; i++) posArray[i] = (Math.random()-0.5) * 80;
                     pGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-                    const pMat = new THREE.PointsMaterial({ size: 0.1, color: 0xE6C200 });
-                    this.particles = new THREE.Points(pGeo, pMat);
-                    this.scene.add(this.particles);
-
-                    // MOUSE INTERACTION
-                    document.addEventListener('mousemove', (e) => {
-                        const x = (e.clientX / window.innerWidth) * 2 - 1;
-                        const y = -(e.clientY / window.innerHeight) * 2 + 1;
-                        gsap.to(this.particles.rotation, { x: y * 0.2, y: x * 0.2, duration: 2 });
+                    
+                    // Using Texture for "Glow" without PostProcessing
+                    const sprite = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png');
+                    const pMat = new THREE.PointsMaterial({
+                        size: 0.5, 
+                        color: 0xE6C200, 
+                        map: sprite, 
+                        blending: THREE.AdditiveBlending, 
+                        depthWrite: false, 
+                        transparent: true,
+                        opacity: 0.8
                     });
 
-                    // ANIMATION LOOP
+                    this.particles = new THREE.Points(pGeo, pMat);
+                    scene.add(this.particles);
+
+                    // Mouse Interaction
+                    let mouseX = 0, mouseY = 0;
+                    document.addEventListener('mousemove', (e) => {
+                        mouseX = (e.clientX - window.innerWidth/2) * 0.001;
+                        mouseY = (e.clientY - window.innerHeight/2) * 0.001;
+                    });
+
                     const animate = () => {
                         requestAnimationFrame(animate);
-                        this.particles.rotation.z += 0.001; // Base rotation
-                        this.bloomComposer.render();
+                        this.particles.rotation.y += 0.001;
+                        // Parallax
+                        this.particles.rotation.x += (mouseY - this.particles.rotation.x) * 0.05;
+                        this.particles.rotation.z += (mouseX - this.particles.rotation.z) * 0.05;
+                        renderer.render(scene, camera);
                     };
                     animate();
+                    this.particlesObj = this.particles; // Reference for updates
                 },
 
-                updateEnvironment() {
-                    // Changes visual state based on stress
-                    const stress = this.calculateStress();
+                updateVisuals() {
+                    if(!this.particlesObj) return;
+                    const stress = this.stressLevel;
                     
-                    if(stress > 50) {
-                        // CHAOS MODE (Red, Fast)
-                        gsap.to(this.particles.material.color, { r: 1, g: 0.2, b: 0.2, duration: 1 });
-                        gsap.to(this.particles.rotation, { timeScale: 2, duration: 1 });
+                    if(stress > 60) {
+                        // High Stress: Red, Fast
+                        gsap.to(this.particlesObj.material.color, { r: 1, g: 0.2, b: 0.2, duration: 1 });
+                        gsap.to(this.particlesObj.rotation, { timeScale: 2, duration: 1 });
                     } else {
-                        // GOLDEN ERA (Gold, Slow, Elegant)
-                        gsap.to(this.particles.material.color, { r: 0.9, g: 0.76, b: 0, duration: 1 });
+                        // Normal: Gold
+                        gsap.to(this.particlesObj.material.color, { r: 0.9, g: 0.76, b: 0, duration: 1 });
                     }
-                },
-
-                warpEffect() {
-                    // Warp speed effect on resolve
-                    gsap.to(this.particles.scale, { x: 2, y: 2, z: 2, duration: 0.2, yoyo: true, repeat: 1 });
-                },
-
-                hoverTicket(severity) {
-                    // Camera reacts to high severity hover
-                    if(severity >= 9) {
-                        gsap.to(this.camera.position, { z: 18, duration: 0.5 }); // Zoom in slightly
-                    }
-                },
-                resetEnvironment() {
-                    gsap.to(this.camera.position, { z: 20, duration: 0.5 });
-                },
-
-                introSequence() {
-                    const tl = gsap.timeline();
-                    tl.to(".intro-text", { opacity: 1, duration: 1.5, ease: "power2.out" })
-                      .to(".intro-line", { width: "200px", duration: 1 }, "-=0.5")
-                      .to("#intro-curtain", { opacity: 0, display: "none", duration: 1.5, delay: 0.5 })
-                      .to(".main-interface", { opacity: 1, duration: 1 });
                 }
             }
         }
