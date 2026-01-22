@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHRONEXT // ORBITAL COMMAND v3</title>
+    <title>CHRONEXT // ORBITAL COMMAND v4</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,6 +14,12 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <script>
+        // --- HIER IHRE DATEN EINFÜGEN ---
+        const CLOUD_CONFIG = {
+            BIN_ID: '', // Z.B. "65a9f3b..."
+            API_KEY: '' // Z.B. "$2a$10$..."
+        };
+
         tailwind.config = {
             theme: {
                 extend: {
@@ -21,22 +27,14 @@
                         'void': '#050507',
                         'accent-gold': '#D4AF37',
                         'accent-alert': '#C92A2A',
-                        'accent-plat': '#E5E4E2'
+                        'accent-time': '#FF8C00', // Orange for long wait times
                     },
                     fontFamily: {
                         'serif': ['Cinzel', 'serif'],
                         'sans': ['Inter', 'sans-serif'],
                         'mono': ['JetBrains Mono', 'monospace'],
                     },
-                    animation: {
-                        'scan': 'scan 2s linear infinite',
-                    },
-                    keyframes: {
-                        scan: {
-                            '0%': { transform: 'translateY(-100%)' },
-                            '100%': { transform: 'translateY(100%)' },
-                        }
-                    }
+                    animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
                 }
             }
         }
@@ -44,112 +42,103 @@
 
     <style>
         body { margin: 0; overflow: hidden; background-color: #050507; color: #E5E4E2; }
-        .scroller::-webkit-scrollbar { width: 2px; }
-        .scroller::-webkit-scrollbar-thumb { background: #D4AF37; }
-        
         .glass-panel {
-            background: rgba(10, 10, 12, 0.7);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            background: rgba(10, 10, 12, 0.75);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
         }
-
-        .hud-input {
-            background: rgba(0,0,0,0.4);
-            border: none;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.3s;
-        }
-        .hud-input:focus { outline: none; border-bottom-color: #D4AF37; background: rgba(212, 175, 55, 0.05); }
+        .scroller::-webkit-scrollbar { width: 3px; }
+        .scroller::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+        .scroller::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
         
-        .raw-input {
-            background: rgba(0,0,0,0.6);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #D4AF37;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            line-height: 1.5;
+        .hud-input {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white;
+            transition: all 0.2s;
         }
-        .raw-input:focus { outline: none; border-color: #D4AF37; }
-
-        .range-slider { -webkit-appearance: none; width: 100%; height: 2px; background: rgba(255,255,255,0.2); outline: none; }
-        .range-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 16px; height: 16px; background: #D4AF37; border-radius: 50%; cursor: pointer;
-            box-shadow: 0 0 10px #D4AF37;
-        }
+        .hud-input:focus { border-color: #D4AF37; background: rgba(0,0,0,0.5); outline: none; }
     </style>
 </head>
 
 <body x-data="dashboard()">
 
-    <div id="canvas-container" class="fixed inset-0 z-0 opacity-50 pointer-events-none"></div>
+    <div id="canvas-container" class="fixed inset-0 z-0 opacity-40 pointer-events-none"></div>
 
-    <main class="relative z-10 w-full h-screen flex flex-col items-center justify-center p-6">
+    <main class="relative z-10 w-full h-screen flex flex-col p-4 lg:p-8">
         
-        <header class="w-full max-w-7xl flex justify-between items-end mb-6">
+        <header class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
             <div>
                 <div class="flex items-center gap-2 mb-1">
-                    <div class="w-2 h-2 rounded-full" :class="connectionStatus === 'LIVE' ? 'bg-green-500 shadow-[0_0_10px_#0f0]' : 'bg-red-500'"></div>
-                    <p class="font-mono text-[10px] tracking-widest text-gray-500" x-text="'LINK STATUS: ' + connectionStatus"></p>
+                    <div class="w-1.5 h-1.5 rounded-full" :class="connectionStatus === 'LIVE' ? 'bg-green-500 shadow-[0_0_8px_#0f0]' : 'bg-red-500'"></div>
+                    <p class="font-mono text-[9px] tracking-[0.2em] text-gray-500" x-text="'LINK: ' + connectionStatus"></p>
                 </div>
-                <h1 class="font-serif text-3xl text-white tracking-widest">CHRONEXT <span class="text-accent-gold">.OPS</span></h1>
+                <h1 class="font-serif text-2xl text-white tracking-widest">CHRONEXT <span class="text-accent-gold">.OPS</span></h1>
             </div>
-            
-            <div class="flex gap-4">
-                <button @click="toggleModal()" class="group flex items-center gap-2 px-6 py-2 border border-accent-gold/30 hover:bg-accent-gold/10 transition-all bg-black/50 backdrop-blur-md">
-                    <span class="text-accent-gold font-mono text-xl">+</span>
-                    <span class="font-sans text-xs tracking-widest text-accent-gold">NEW INTEL</span>
+            <div class="flex gap-2">
+                <button @click="openModal()" class="px-4 py-2 bg-accent-gold/10 border border-accent-gold/30 hover:bg-accent-gold/20 text-accent-gold font-mono text-xs tracking-widest transition-all">
+                    + INTELLIGENCE IMPORT
                 </button>
-                <button @click="syncData()" class="px-4 py-2 border border-white/10 hover:bg-white/5 transition-all bg-black/50 backdrop-blur-md">
-                    <span x-show="!isLoading" class="text-xs font-mono text-gray-400">SYNC</span>
-                    <svg x-show="isLoading" class="w-4 h-4 text-accent-gold animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+                <button @click="syncData()" class="px-3 py-2 border border-white/10 hover:bg-white/5 text-gray-400">
+                    <svg class="w-4 h-4" :class="{'animate-spin text-accent-gold': isLoading}" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path><path d="M21 12v9"></path></svg>
                 </button>
             </div>
         </header>
 
-        <div class="w-full max-w-7xl flex-1 glass-panel flex flex-col overflow-hidden relative">
-            <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 bg-black/40 font-serif text-[10px] tracking-[0.2em] text-gray-500 uppercase sticky top-0 z-20">
-                <div class="col-span-1 text-center">Sev</div>
-                <div class="col-span-2">Client Identity</div>
-                <div class="col-span-5">Contextual Data</div>
-                <div class="col-span-2">Action</div>
-                <div class="col-span-2 text-right">Access</div>
+        <div class="flex-1 glass-panel flex flex-col overflow-hidden rounded-sm relative">
+            <div class="grid grid-cols-12 gap-2 p-3 bg-black/40 font-serif text-[9px] tracking-widest text-gray-500 uppercase border-b border-white/5">
+                <div class="col-span-1 text-center">Pri</div>
+                <div class="col-span-2">Entity</div>
+                <div class="col-span-5">Analysis / Context</div>
+                <div class="col-span-2">Required Action</div>
+                <div class="col-span-2 text-right">Link</div>
             </div>
 
-            <div class="scroller overflow-y-auto flex-1 p-2 space-y-1">
+            <div class="scroller overflow-y-auto flex-1 p-1">
                 <template x-for="ticket in sortedTickets" :key="ticket.id">
-                    <div class="grid grid-cols-12 gap-4 p-4 items-center border-b border-white/5 hover:bg-white/5 transition-all group relative">
+                    <div class="grid grid-cols-12 gap-4 p-3 items-center border-b border-white/5 hover:bg-white/5 transition-colors group relative text-xs">
+                        
                         <div class="col-span-1 flex justify-center">
-                            <div class="font-serif font-bold text-lg" :class="ticket.severity >= 9 ? 'text-accent-alert drop-shadow-[0_0_8px_rgba(201,42,42,0.8)]' : (ticket.severity >= 6 ? 'text-accent-gold' : 'text-gray-500')">
+                            <div class="w-8 h-8 flex items-center justify-center font-serif font-bold border rounded-sm transition-all"
+                                 :class="{
+                                     'border-accent-alert text-accent-alert bg-accent-alert/10 shadow-[0_0_10px_rgba(201,42,42,0.3)] animate-pulse-slow': ticket.severity >= 9,
+                                     'border-accent-time text-accent-time bg-accent-time/10': ticket.severity >= 7 && ticket.severity < 9,
+                                     'border-accent-gold text-accent-gold': ticket.severity >= 5 && ticket.severity < 7,
+                                     'border-gray-700 text-gray-500': ticket.severity < 5
+                                 }">
                                 <span x-text="ticket.severity"></span>
                             </div>
                         </div>
+
+                        <div class="col-span-2 truncate">
+                            <div class="font-sans font-semibold text-gray-200" x-text="ticket.client"></div>
+                            <div class="font-mono text-[9px] text-accent-gold/70 mt-0.5" x-text="ticket.ref_id"></div>
+                        </div>
+
+                        <div class="col-span-5 pr-2">
+                            <p class="font-sans text-gray-400 leading-tight" x-text="ticket.context"></p>
+                            <div class="flex gap-2 mt-1.5 flex-wrap">
+                                <template x-if="ticket.wait_time_alert">
+                                    <span class="px-1.5 py-0.5 bg-accent-time/20 text-accent-time border border-accent-time/30 text-[9px] font-mono rounded-sm uppercase tracking-tight" x-text="ticket.wait_time_alert"></span>
+                                </template>
+                                <template x-if="ticket.meta_copy">
+                                    <button @click="copy(ticket.meta_copy)" class="px-1.5 py-0.5 bg-white/5 hover:bg-white/10 text-gray-400 border border-white/10 text-[9px] font-mono rounded-sm flex items-center gap-1 cursor-copy">
+                                        <span x-text="ticket.meta_copy"></span>
+                                        <svg class="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
                         <div class="col-span-2">
-                            <div class="font-sans font-medium text-white text-sm tracking-wide truncate" x-text="ticket.client"></div>
-                            <div class="font-mono text-[10px] text-gray-500 mt-1 truncate" x-text="ticket.ref_id"></div>
+                            <span class="inline-block px-2 py-1 bg-black/50 border border-white/10 text-[9px] uppercase tracking-widest text-gray-300 rounded-sm" x-text="ticket.action"></span>
                         </div>
-                        <div class="col-span-5 pr-4">
-                            <p class="font-sans text-xs text-gray-300 leading-relaxed opacity-80 line-clamp-2" x-text="ticket.context"></p>
-                            <template x-if="ticket.meta_copy">
-                                <div @click="copy(ticket.meta_copy)" class="mt-2 inline-flex items-center gap-2 px-2 py-1 bg-white/5 rounded cursor-pointer hover:bg-accent-gold/20 transition-colors border border-white/5 hover:border-accent-gold/50">
-                                    <svg class="w-3 h-3 text-accent-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
-                                    <span class="font-mono text-[10px] text-accent-gold tracking-wider" x-text="ticket.meta_copy"></span>
-                                </div>
-                            </template>
-                        </div>
-                        <div class="col-span-2">
-                            <span class="text-[10px] uppercase tracking-widest border border-white/20 px-2 py-1 text-gray-300" x-text="ticket.action"></span>
-                        </div>
-                        <div class="col-span-2 flex justify-end items-center gap-3">
+
+                        <div class="col-span-2 flex justify-end items-center gap-2">
                             <template x-if="ticket.link">
-                                <a :href="ticket.link" target="_blank" class="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center hover:bg-accent-gold hover:border-accent-gold hover:text-black transition-all">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                </a>
+                                <a :href="ticket.link" target="_blank" class="px-3 py-1.5 border border-white/20 hover:border-accent-gold hover:text-accent-gold text-[9px] font-serif tracking-widest transition-colors">OPEN</a>
                             </template>
-                            <button @click="archive(ticket.id)" class="text-gray-600 hover:text-red-500 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            <button @click="archive(ticket.id)" class="p-1.5 text-gray-600 hover:text-red-500 transition-colors" title="Resolve">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             </button>
                         </div>
                     </div>
@@ -157,67 +146,53 @@
             </div>
         </div>
 
-        <div x-show="showInput" 
-             x-transition.opacity.duration.300ms
-             class="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md">
-            
-            <div class="w-full max-w-4xl bg-[#0a0a0c] border border-accent-gold/20 p-8 shadow-[0_0_100px_rgba(0,0,0,0.9)] relative flex gap-8">
+        <div x-show="showModal" class="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-8"
+             x-transition.opacity>
+            <div class="w-full max-w-5xl h-[80vh] bg-[#08080a] border border-white/10 flex shadow-2xl">
                 
-                <div class="w-1/2 flex flex-col">
-                    <h2 class="font-serif text-lg text-accent-gold mb-4 tracking-widest flex items-center gap-2">
-                        <span class="w-2 h-2 bg-accent-gold rounded-full animate-pulse"></span> RAW DATA INPUT
-                    </h2>
-                    <p class="text-[10px] text-gray-500 mb-2 font-mono">PASTE EMAIL / SLACK / TICKET TEXT HERE</p>
-                    <textarea x-model="rawData" class="raw-input w-full flex-1 p-4 rounded-sm resize-none" placeholder="Paste messy text here... Example: 'Bitte Kunde Herr Müller zurückrufen wegen SR12345678, er droht mit Anwalt...'"></textarea>
-                    
-                    <button @click="analyzeData()" class="mt-4 w-full py-3 bg-white/5 border border-white/10 hover:border-accent-gold text-white font-serif text-xs tracking-widest hover:bg-white/10 transition-all flex justify-center items-center gap-2 group">
-                        <span x-show="!isAnalyzing">ANALYZE & PROCESS</span>
-                        <span x-show="isAnalyzing" class="animate-pulse">DECRYPTING...</span>
-                    </button>
+                <div class="w-1/2 p-6 flex flex-col border-r border-white/5">
+                    <h3 class="font-serif text-accent-gold mb-2 tracking-widest">RAW DATA STREAM</h3>
+                    <p class="text-[10px] text-gray-500 mb-4 font-mono">PASTE EMAIL DUMPS / SLACK LOGS HERE. MULTI-CASE SUPPORT ACTIVE.</p>
+                    <textarea x-model="rawData" class="flex-1 bg-black/30 border border-white/10 p-4 font-mono text-[10px] text-gray-300 resize-none focus:border-accent-gold outline-none leading-relaxed" placeholder="Paste text..."></textarea>
+                    <div class="mt-4 flex gap-2">
+                        <button @click="showModal = false" class="px-4 py-2 border border-white/10 text-gray-500 text-xs font-mono hover:text-white">CANCEL</button>
+                        <button @click="processInput()" class="flex-1 px-4 py-2 bg-accent-gold text-black font-bold font-serif text-xs tracking-widest hover:bg-white transition-colors">
+                            ANALYZE & GENERATE TICKETS
+                        </button>
+                    </div>
                 </div>
 
-                <div class="w-1/2 flex flex-col border-l border-white/10 pl-8 relative overflow-hidden">
-                    <div x-show="isAnalyzing" class="absolute inset-0 bg-gradient-to-b from-transparent via-accent-gold/10 to-transparent h-[20%] animate-scan pointer-events-none z-0"></div>
-
-                    <h2 class="font-serif text-lg text-gray-400 mb-4 tracking-widest">STRUCTURED INTEL</h2>
+                <div class="w-1/2 p-6 flex flex-col bg-[#0b0b0d]">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-serif text-gray-300 tracking-widest">DETECTED CASES: <span x-text="detectedCases.length" class="text-accent-gold"></span></h3>
+                    </div>
                     
-                    <div class="space-y-4 relative z-10">
-                        <div>
-                            <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Detected Client / Entity</label>
-                            <input x-model="newTicket.client" type="text" class="hud-input w-full p-1 text-sm">
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Ref ID (SR/PO)</label>
-                                <input x-model="newTicket.ref_id" type="text" class="hud-input w-full p-1 text-sm font-mono text-gray-400">
+                    <div class="flex-1 overflow-y-auto space-y-3 pr-2 scroller">
+                        <template x-for="(c, index) in detectedCases" :key="index">
+                            <div class="p-3 bg-white/5 border border-white/5 rounded-sm relative group">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-serif font-bold text-accent-gold" x-text="c.severity"></span>
+                                        <input x-model="c.client" class="bg-transparent text-white font-sans text-xs font-bold w-40 focus:outline-none border-b border-transparent focus:border-white/20">
+                                    </div>
+                                    <span class="text-[9px] font-mono text-gray-500" x-text="c.action"></span>
+                                </div>
+                                <textarea x-model="c.context" rows="2" class="w-full bg-transparent text-[10px] text-gray-400 font-mono resize-none focus:outline-none"></textarea>
+                                <div x-show="c.wait_time_alert" class="mt-2 text-[9px] text-accent-time font-mono uppercase tracking-wide flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 bg-accent-time rounded-full animate-pulse"></span>
+                                    <span x-text="c.wait_time_alert"></span>
+                                </div>
+                                <button @click="removeCase(index)" class="absolute top-2 right-2 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100">✕</button>
                             </div>
-                            <div>
-                                <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Severity (Auto-Calc)</label>
-                                <input x-model="newTicket.severity" type="number" class="hud-input w-full p-1 text-sm text-accent-alert font-bold">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Situation Briefing</label>
-                            <textarea x-model="newTicket.context" rows="3" class="hud-input w-full p-1 text-sm"></textarea>
-                        </div>
-
-                        <div>
-                            <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Extraction (Phone/IBAN)</label>
-                            <input x-model="newTicket.meta_copy" type="text" class="hud-input w-full p-1 text-sm font-mono text-gray-400">
-                        </div>
-
-                        <div>
-                            <label class="block font-mono text-[9px] text-accent-gold mb-1 uppercase">Detected Deep Link</label>
-                            <input x-model="newTicket.link" type="text" class="hud-input w-full p-1 text-xs text-blue-400 truncate">
+                        </template>
+                        <div x-show="detectedCases.length === 0 && !isProcessing" class="h-full flex items-center justify-center text-gray-600 font-mono text-xs">
+                            WAITING FOR INPUT...
                         </div>
                     </div>
 
-                    <div class="flex justify-end gap-4 mt-auto pt-4">
-                        <button @click="showInput = false" class="px-4 py-2 font-mono text-[10px] text-gray-500 hover:text-white">DISCARD</button>
-                        <button @click="submitTicket()" class="px-6 py-2 bg-accent-gold text-black font-serif text-xs font-bold tracking-widest hover:bg-white transition-colors shadow-[0_0_20px_rgba(212,175,55,0.3)]">CONFIRM</button>
-                    </div>
+                    <button x-show="detectedCases.length > 0" @click="confirmImport()" class="mt-4 w-full py-3 border border-green-900/50 bg-green-900/20 text-green-500 font-mono text-xs tracking-widest hover:bg-green-900/40 transition-all">
+                        CONFIRM IMPORT TO DASHBOARD
+                    </button>
                 </div>
             </div>
         </div>
@@ -225,169 +200,220 @@
     </main>
 
     <script>
-        // --- CONFIG ---
-        // Fügen Sie hier Ihre JSONBIN Keys ein für Cloud Sync
-        const CLOUD_CONFIG = {
-            BIN_ID: '', 
-            API_KEY: '' 
-        };
-
         function dashboard() {
             return {
                 tickets: [],
-                isLoading: false,
-                isAnalyzing: false,
-                showInput: false,
-                connectionStatus: 'LOCAL',
+                detectedCases: [],
                 rawData: '',
-                
-                newTicket: { client: '', context: '', severity: 5, action: 'Review', link: '', meta_copy: '', ref_id: '' },
+                showModal: false,
+                isLoading: false,
+                isProcessing: false,
+                connectionStatus: 'OFFLINE',
 
                 async init() {
-                    if(CLOUD_CONFIG.BIN_ID) {
+                    // Check Config
+                    if(CLOUD_CONFIG.BIN_ID && CLOUD_CONFIG.API_KEY) {
                         this.connectionStatus = 'LIVE';
                         await this.loadFromCloud();
                     } else {
-                        const local = localStorage.getItem('chronext_data_v3');
+                        // Local Fallback
+                        const local = localStorage.getItem('chronext_db_v4');
                         if(local) this.tickets = JSON.parse(local);
                     }
-                    this.initVisuals();
+                    this.init3D();
                 },
 
-                // --- THE NEURAL PARSER ENGINE ---
-                analyzeData() {
-                    this.isAnalyzing = true;
+                // --- CORE INTELLIGENCE ENGINE ---
+                processInput() {
+                    this.isProcessing = true;
+                    // Reset detected
+                    this.detectedCases = [];
+                    const text = this.rawData;
+
+                    // 1. SPLIT LOGIC (The "Multi-Thread" Parser)
+                    // We split by "Freshworks" or "https" occurrences if newlines are messy, 
+                    // or by double newlines if structured.
+                    // Strategy: Regex split looking for start of new link blocks or explicit separators
                     
-                    // Simulating processing delay for effect
-                    setTimeout(() => {
-                        const text = this.rawData;
-                        let severity = 4; // Base Priority
-                        let action = "General";
-                        
-                        // 1. KEYWORD EXTRACTION & SENTIMENT
-                        const urgentWords = ['dringend', 'asap', 'sofort', 'wichtig', 'urgent'];
-                        const criticalWords = ['anwalt', 'polizei', 'betrug', 'fraud', 'lawyer', 'droht', 'frist'];
-                        const moneyWords = ['auszahlung', 'geld', 'iban', 'rechnung', 'commission'];
-                        const logisticsWords = ['dhl', 'versand', 'retoure', 'rücksendung', 'abholung', 'driver'];
+                    // Normalize text: replace multiple newlines with a specific marker
+                    let normalized = text.replace(/\n\s*\n/g, '||SPLIT||');
+                    // Also split if we see "https://" followed by newlines in a way that suggests a new block
+                    normalized = normalized.replace(/(https?:\/\/[^\s]+)\s+(?=Bitte|Herr|Frau|Client|Kunde)/g, '$1||SPLIT||');
+                    
+                    let chunks = normalized.split('||SPLIT||');
+                    
+                    // If splitting didn't work (chunks < 2) but text is long, try splitting by Link occurrences
+                    if (chunks.length < 2 && text.length > 200) {
+                        // Look for multiple URLs, split before them
+                        // This is a heuristic guess
+                    }
 
-                        if (urgentWords.some(w => text.toLowerCase().includes(w))) { severity += 2; action = "Urgent"; }
-                        if (moneyWords.some(w => text.toLowerCase().includes(w))) { severity += 1; action = "Finance"; }
-                        if (logisticsWords.some(w => text.toLowerCase().includes(w))) { severity += 1; action = "Logistics"; }
-                        if (criticalWords.some(w => text.toLowerCase().includes(w))) { severity = 10; action = "Legal/Risk"; }
-                        
-                        // Cap Severity
-                        if(severity > 10) severity = 10;
+                    chunks.forEach(chunk => {
+                        if(chunk.length < 10) return; // Skip noise
+                        this.analyzeChunk(chunk);
+                    });
 
-                        // 2. PATTERN RECOGNITION (Regex)
-                        // Find SR or PO Numbers
-                        const idMatch = text.match(/(SR\d+|PO\d+|#\d+)/i);
-                        const ref_id = idMatch ? idMatch[0].toUpperCase() : '';
-
-                        // Find Links (Freshdesk/Freshworks/Operations)
-                        const linkMatch = text.match(/(https?:\/\/[^\s]+)/);
-                        const link = linkMatch ? linkMatch[0] : '';
-
-                        // Find Phone Numbers (German formats mostly)
-                        const phoneMatch = text.match(/(\+49|0049|01[567])[\d\s\-/]+/);
-                        // Find IBAN
-                        const ibanMatch = text.match(/DE\d{20,}/i);
-                        
-                        let meta = '';
-                        if(phoneMatch) meta = phoneMatch[0].replace(/\s/g, '');
-                        if(ibanMatch) meta = ibanMatch[0];
-
-                        // 3. NAME EXTRACTION (Heuristic: Look for "Herr X" or "Frau Y")
-                        const nameMatch = text.match(/(Herr|Frau|Mr\.|Mrs\.)\s+([A-ZÄÖÜ][a-zäöü]+)/);
-                        let client = nameMatch ? `${nameMatch[1]} ${nameMatch[2]}` : 'Unknown Client';
-                        
-                        // If no name found, try to use first few words
-                        if(client === 'Unknown Client' && text.length > 5) {
-                            client = "Inbound Query"; 
-                        }
-
-                        // 4. POPULATE FORM
-                        this.newTicket = {
-                            client: client,
-                            context: text.substring(0, 100) + (text.length > 100 ? '...' : ''), // Preview text
-                            severity: severity,
-                            action: action,
-                            link: link,
-                            meta_copy: meta,
-                            ref_id: ref_id
-                        };
-
-                        this.isAnalyzing = false;
-                    }, 800);
+                    this.isProcessing = false;
                 },
 
-                // --- DATA OPS ---
+                analyzeChunk(text) {
+                    let severity = 4; // Base
+                    let action = "Review";
+                    let waitAlert = null;
+
+                    // A. TEMPORAL ANALYSIS (Time Gap Logic)
+                    const monthMap = { 
+                        'jan':0, 'feb':1, 'mär':2, 'mar':2, 'apr':3, 'mai':4, 'may':4, 'jun':5, 'jul':6, 'aug':7, 'sep':8, 'okt':9, 'oct':9, 'nov':10, 'dez':11, 'dec':11 
+                    };
+                    const currentMonth = new Date().getMonth(); // 0-11
+                    
+                    // Find mentions of months (e.g. "seit Oktober", "vom November")
+                    const monthMatch = text.match(/(?:seit|vom|ab|in)\s+(Jan(?:uar)?|Feb(?:ruar)?|Mär(?:z)?|Apr(?:il)?|Mai|Jun(?:i)?|Jul(?:i)?|Aug(?:ust)?|Sep(?:tember)?|Okt(?:ober)?|Nov(?:ember)?|Dez(?:ember)?)/i);
+                    
+                    if (monthMatch) {
+                        const monthStr = monthMatch[1].toLowerCase().substring(0,3);
+                        const mentionedMonth = monthMap[monthStr];
+                        
+                        if (mentionedMonth !== undefined) {
+                            // Calculate diff (handle year wrap, e.g., mentioned Oct, now Feb)
+                            let diff = currentMonth - mentionedMonth;
+                            if (diff < 0) diff += 12; // Wrap around year
+                            
+                            if (diff >= 1) {
+                                severity += 2; // +1 month waiting
+                                action = "Update Client";
+                                waitAlert = `WAITING ${diff} MONTHS`;
+                            }
+                            if (diff >= 3) {
+                                severity += 4; // +3 months waiting -> CRITICAL
+                                action = "DE-ESCALATE";
+                                waitAlert = `CRITICAL: ${diff} MONTHS PENDING`;
+                            }
+                        }
+                    }
+
+                    // B. KEYWORD SCORING
+                    if (text.match(/anwalt|lawyer|betrug|polizei|frist/i)) { severity = 10; action = "LEGAL RISK"; }
+                    else if (text.match(/auszahlung|geld|money|iban/i)) { severity += 1; action = "FINANCE"; }
+                    else if (text.match(/dhl|ups|versand|retoure|driver/i)) { severity += 1; action = "LOGISTICS"; }
+                    else if (text.match(/rückruf|call|anrufen/i)) { severity += 1; if(action === "Review") action = "CALLBACK"; }
+                    
+                    // Cap Severity
+                    if(severity > 10) severity = 10;
+
+                    // C. ENTITY EXTRACTION
+                    // Link
+                    const linkMatch = text.match(/https?:\/\/[^\s]+/);
+                    const link = linkMatch ? linkMatch[0] : '';
+                    
+                    // ID
+                    const idMatch = text.match(/(SR\d+|PO\d+|#\d+)/i);
+                    const ref_id = idMatch ? idMatch[0].toUpperCase() : '';
+
+                    // Meta (Phone/IBAN)
+                    const phoneMatch = text.match(/(\+49|0049|01[567])[\d\s\-/]+/);
+                    const ibanMatch = text.match(/DE\d{20,}/i);
+                    let meta = phoneMatch ? phoneMatch[0].replace(/\s/g,'') : (ibanMatch ? ibanMatch[0] : '');
+
+                    // Client Name
+                    const nameMatch = text.match(/(?:Herr|Frau|Mr\.|Mrs\.)\s+([A-ZÄÖÜ][a-zäöü\-\s]+?)(?=\s|$|\.|,|und)/);
+                    let client = nameMatch ? nameMatch[0] : (ref_id || 'Unknown Client');
+
+                    this.detectedCases.push({
+                        id: Date.now() + Math.random(),
+                        client, 
+                        ref_id,
+                        context: text.replace(link, '').substring(0, 120).trim() + "...",
+                        severity,
+                        action,
+                        link,
+                        meta_copy: meta,
+                        wait_time_alert: waitAlert,
+                        timestamp: new Date().toISOString()
+                    });
+                },
+
+                // --- SYNC OPS ---
+                async confirmImport() {
+                    // Add all detected cases to main list
+                    this.tickets.unshift(...this.detectedCases);
+                    this.detectedCases = []; // clear
+                    this.showModal = false;
+                    this.rawData = '';
+                    await this.saveToCloud();
+                },
+
+                removeCase(index) {
+                    this.detectedCases.splice(index, 1);
+                },
+
                 async loadFromCloud() {
+                    this.isLoading = true;
                     try {
                         const res = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}/latest`, {
                             headers: { 'X-Master-Key': CLOUD_CONFIG.API_KEY }
                         });
                         const data = await res.json();
-                        this.tickets = data.record;
+                        this.tickets = Array.isArray(data.record) ? data.record : [];
                     } catch(e) { console.error(e); }
+                    this.isLoading = false;
                 },
 
                 async saveToCloud() {
-                    if(this.connectionStatus === 'LOCAL') {
-                        localStorage.setItem('chronext_data_v3', JSON.stringify(this.tickets));
+                    if(this.connectionStatus === 'OFFLINE') {
+                        localStorage.setItem('chronext_db_v4', JSON.stringify(this.tickets));
                         return;
                     }
-                    await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'X-Master-Key': CLOUD_CONFIG.API_KEY },
-                        body: JSON.stringify(this.tickets)
-                    });
-                },
-
-                async submitTicket() {
-                    const entry = { id: Date.now(), ...this.newTicket, timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
-                    this.tickets.unshift(entry);
-                    this.showInput = false;
-                    this.rawData = ''; 
-                    await this.saveToCloud();
-                },
-
-                async archive(id) {
-                    if(!confirm("Resolve Case?")) return;
-                    this.tickets = this.tickets.filter(t => t.id !== id);
-                    await this.saveToCloud();
+                    this.isLoading = true;
+                    try {
+                        await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_CONFIG.BIN_ID}`, {
+                            method: 'PUT',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'X-Master-Key': CLOUD_CONFIG.API_KEY 
+                            },
+                            body: JSON.stringify(this.tickets)
+                        });
+                    } catch(e) { alert("Sync Error"); }
+                    this.isLoading = false;
                 },
                 
-                toggleModal() { this.showInput = true; this.newTicket = {}; this.rawData = ''; },
-                copy(t) { navigator.clipboard.writeText(t); },
+                async archive(id) {
+                    if(confirm("Mark Case as Resolved?")) {
+                        this.tickets = this.tickets.filter(t => t.id !== id);
+                        await this.saveToCloud();
+                    }
+                },
 
-                // --- VISUAL ENGINE ---
-                initVisuals() {
+                openModal() { this.showModal = true; this.rawData = ''; this.detectedCases = []; },
+                copy(t) { navigator.clipboard.writeText(t); },
+                get sortedTickets() { return this.tickets.sort((a,b) => b.severity - a.severity); },
+
+                // --- VISUALS ---
+                init3D() {
                     const scene = new THREE.Scene();
                     const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
                     const renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
                     renderer.setSize(window.innerWidth, window.innerHeight);
                     document.getElementById('canvas-container').appendChild(renderer.domElement);
                     
-                    const geometry = new THREE.IcosahedronGeometry(10, 1);
-                    const material = new THREE.MeshBasicMaterial({color:0x222222, wireframe:true, transparent:true, opacity:0.1});
-                    const sphere = new THREE.Mesh(geometry, material);
-                    scene.add(sphere);
-                    camera.position.z = 20;
-                    
-                    // Floating Particles
-                    const pGeo = new THREE.BufferGeometry();
-                    const pCount = 600;
-                    const pArr = new Float32Array(pCount*3);
-                    for(let i=0;i<pCount*3;i++) pArr[i] = (Math.random()-0.5)*60;
-                    pGeo.setAttribute('position', new THREE.BufferAttribute(pArr,3));
-                    const pMat = new THREE.PointsMaterial({size:0.04, color:0xD4AF37});
-                    const pMesh = new THREE.Points(pGeo, pMat);
-                    scene.add(pMesh);
+                    // Grid Floor
+                    const grid = new THREE.GridHelper(100, 40, 0x333333, 0x111111);
+                    grid.position.y = -10;
+                    grid.rotation.x = 0.2;
+                    scene.add(grid);
 
+                    // Floating Primitives
+                    const geometry = new THREE.TorusGeometry(10, 0.1, 16, 100);
+                    const material = new THREE.MeshBasicMaterial({color: 0xD4AF37, transparent:true, opacity:0.1});
+                    const ring = new THREE.Mesh(geometry, material);
+                    scene.add(ring);
+
+                    camera.position.z = 20;
                     function animate() {
                         requestAnimationFrame(animate);
-                        sphere.rotation.y += 0.001;
-                        pMesh.rotation.y -= 0.0005;
+                        ring.rotation.z -= 0.002;
+                        ring.rotation.x += 0.001;
                         renderer.render(scene, camera);
                     }
                     animate();
